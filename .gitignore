@@ -142,3 +142,7 @@ dmypy.json
 cython_debug/
 
 .parcel-cache/
+
+# This project
+.DS_Store
+

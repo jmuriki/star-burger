@@ -1,9 +1,8 @@
-import json
-
 from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import status
 
 from .models import Product, Order, OrderItem
 
@@ -60,9 +59,69 @@ def product_list_api(request):
     })
 
 
+def make_report(msgs):
+    report = {}
+    for msg in msgs:
+        for field, text in msg.items():
+            if report.get(field):
+                report[field] = f"{report[field]} {text}"
+            else:
+                report[field] = text
+    return report
+
+
+def check_order_fields(payload):
+    product_ids = [
+        product_id for product_id in Product.objects.all().values_list(
+            'id',
+            flat=True,
+        )
+    ]
+    products_fields = ['product', 'quantity']
+    err_msgs = []
+    try:
+        if payload['products'] is None:
+            err_msgs.append({'products': 'Это поле не может быть пустым.'})
+        elif not isinstance(payload['products'], list):
+            instance = type(payload['products'])
+            text = f"Ожидался list со значениями, но был получен {instance}."
+            err_msgs.append({'products': text})
+        if isinstance(payload['products'], list) and payload['products']:
+            for product in payload['products']:
+                if product['product'] not in product_ids:
+                    text = f"Недопустимый первичный ключ - {product['product']}."
+                    err_msgs.append({'products': text})
+                elif product['quantity'] < 1:
+                    wrong_quantity_product = Product.objects.get(
+                        id=product['product'],
+                    )
+                    text = f"Недопустимое количество товара \
+                    '{wrong_quantity_product.name}' - {product['quantity']}"
+                    err_msgs.append({'products': text})
+        elif isinstance(payload['products'], list) and not payload['products']:
+            err_msgs.append({'products': 'Этот список не может быть пустым.'})
+        elif payload['products'] is not None and not payload['products']:
+            err_msgs.append({'products': 'Это поле не может быть пустым.'})
+    except KeyError:
+        if not payload.get('products'):
+            err_msgs.append({'products': 'Обязательное поле.'})
+        else:
+            for product in payload['products']:
+                for field in products_fields:
+                    if not product.get(field):
+                        err_msgs.append({field: 'Обязательное поле.'})
+    if err_msgs:
+        report = make_report(err_msgs)
+        return report
+    return None
+
+
 @api_view(['POST'])
 def register_order(request):
     order_payload = request.data
+    err_report = check_order_fields(order_payload)
+    if err_report:
+        return Response(err_report, status=status.HTTP_406_NOT_ACCEPTABLE)
     order = Order.objects.create(
         address=order_payload['address'],
         firstname=order_payload['firstname'],

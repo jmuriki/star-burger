@@ -1,3 +1,5 @@
+import phonenumbers
+
 from django.http import JsonResponse
 from django.templatetags.static import static
 from rest_framework.decorators import api_view
@@ -59,6 +61,14 @@ def product_list_api(request):
     })
 
 
+def validate_number(number):
+    try:
+        parsed_number = phonenumbers.parse(number, "RU")
+    except Exception:
+        return False
+    return phonenumbers.is_valid_number(parsed_number)
+
+
 def make_report(msgs):
     report = {}
     for msg in msgs:
@@ -78,6 +88,7 @@ def check_order_fields(payload):
         )
     ]
     products_fields = ['product', 'quantity']
+    client_fields = ['firstname', 'lastname', 'phonenumber', 'address']
     err_msgs = []
     try:
         if payload['products'] is None:
@@ -102,6 +113,22 @@ def check_order_fields(payload):
             err_msgs.append({'products': 'Этот список не может быть пустым.'})
         elif payload['products'] is not None and not payload['products']:
             err_msgs.append({'products': 'Это поле не может быть пустым.'})
+        if not any(payload[field] for field in client_fields):
+            err_msgs.append({
+                ', '.join(client_fields): 'Эти поля не могут быть пустыми.'
+            })
+        else:
+            for field in client_fields:
+                if payload[field] is None:
+                    err_msgs.append({field: 'Это поле не может быть пустым.'})
+                elif not isinstance(payload[field], str):
+                    err_msgs.append({field: 'Not a valid string.'})
+                elif not payload[field]:
+                    err_msgs.append({field: 'Это поле не может быть пустым.'})
+                elif field == 'phonenumber' and \
+                        not validate_number(payload['phonenumber']):
+                    msg = {'phonenumber': 'Введен некорректный номер телефона.'}
+                    err_msgs.append(msg)
     except KeyError:
         if not payload.get('products'):
             err_msgs.append({'products': 'Обязательное поле.'})
@@ -110,6 +137,12 @@ def check_order_fields(payload):
                 for field in products_fields:
                     if not product.get(field):
                         err_msgs.append({field: 'Обязательное поле.'})
+        if all(payload.get(field) is None for field in client_fields):
+            err_msgs.append({', '.join(client_fields): 'Обязательные поля.'})
+        else:
+            for field in client_fields:
+                if not payload.get(field):
+                    err_msgs.append({field: 'Обязательное поле.'})
     if err_msgs:
         report = make_report(err_msgs)
         return report

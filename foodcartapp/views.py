@@ -70,11 +70,13 @@ class OrderSerializer(ModelSerializer):
     products = ListField(
         child=OrderItemSerializer(),
         allow_empty=False,
+        write_only=True,
     )
 
     class Meta:
         model = Order
         fields = [
+            'id',
             'products',
             'address',
             'firstname',
@@ -85,21 +87,21 @@ class OrderSerializer(ModelSerializer):
 
 @api_view(['POST'])
 def register_order(request):
-    serializer = OrderItemSerializer(data=request.data)
     serializer = OrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    payload = serializer.validated_data
+    valid_payload = serializer.validated_data
     order = Order.objects.create(
-        address=payload['address'],
-        firstname=payload['firstname'],
-        lastname=payload['lastname'],
-        phonenumber=payload['phonenumber'],
+        address=valid_payload['address'],
+        firstname=valid_payload['firstname'],
+        lastname=valid_payload['lastname'],
+        phonenumber=valid_payload['phonenumber'],
     )
-    for clause in payload['products']:
+    for clause in valid_payload['products']:
         product = Product.objects.get(name=clause['product'])
         OrderItem.objects.create(
             product=product,
             quantity=clause['quantity'],
             order=order,
         )
+    serializer = OrderSerializer(order)
     return Response(serializer.data)

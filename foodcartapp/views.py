@@ -101,6 +101,7 @@ def register_order(request):
         OrderItem.objects.create(
             product=product,
             quantity=clause['quantity'],
+            price=product.price,
             order=order,
         )
     serializer = OrderSerializer(order)

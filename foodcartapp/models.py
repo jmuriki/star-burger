@@ -127,8 +127,8 @@ class RestaurantMenuItem(models.Model):
 
 class OrderQuerySet(models.QuerySet):
     def total(self):
-        items = OrderItem.objects.prefetch_related('product').\
-                annotate(subtotal=F('product__price') * F('quantity'))
+        items = OrderItem.objects.\
+                annotate(subtotal=F('price') * F('quantity'))
         for order in self:
             order_items = items.filter(order=order.id)
             subtotals = [item.subtotal for item in order_items]
@@ -144,7 +144,15 @@ class OrderItem(models.Model):
         related_name='order_items',
         on_delete=models.CASCADE,
     )
-    quantity = models.IntegerField()
+    quantity = models.IntegerField(
+        verbose_name='количество',
+    )
+    price = models.DecimalField(
+        verbose_name='цена',
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(0)]
+    )
     order = models.ForeignKey(
         'Order',
         verbose_name='заказ',

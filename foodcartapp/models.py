@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import F
+from django.db.models import F, Prefetch
 from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -127,14 +127,15 @@ class RestaurantMenuItem(models.Model):
 
 class OrderQuerySet(models.QuerySet):
     def total(self):
-        items = OrderItem.objects.\
-                annotate(subtotal=F('price') * F('quantity'))
-        for order in self:
-            order_items = items.filter(order=order.id)
+        orders = self.prefetch_related(Prefetch(
+            'order_items',
+            OrderItem.objects.annotate(subtotal=F('price') * F('quantity'))))
+        for order in orders:
+            order_items = order.order_items.all()
             subtotals = [item.subtotal for item in order_items]
             total = sum(subtotals)
             order.total = total
-        return self
+        return orders
 
 
 class OrderItem(models.Model):

@@ -116,6 +116,7 @@ class ProductAdmin(admin.ModelAdmin):
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     fields = [
+        'status',
         'address',
         'firstname',
         'lastname',

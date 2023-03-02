@@ -162,6 +162,26 @@ class OrderItem(models.Model):
 
 
 class Order(models.Model):
+
+    MANAGER = 'MR'
+    RESTAURANT = 'RT'
+    COURIER = 'CR'
+    CLIENT = 'CT'
+    STATUS_CHOISES = [
+        (MANAGER, 'У менеджера'),
+        (RESTAURANT, 'В ресторане'),
+        (COURIER, 'У курьера'),
+        (CLIENT, 'Доставлен'),
+    ]
+
+    status = models.CharField(
+        verbose_name='статус', 
+        max_length=10,
+        choices=STATUS_CHOISES,
+        default=MANAGER,
+        db_index=True,
+    )
+
     address = models.CharField(
         max_length=200,
         verbose_name='адрес',

@@ -201,6 +201,24 @@ class Order(models.Model):
         verbose_name='комментарий к заказу',
         max_length=500,
         default="",
+        blank=True,
+    )
+    registered_at = models.DateTimeField(
+        verbose_name='принят',
+        auto_now_add=True,
+        db_index=True,
+    )
+    called_at = models.DateTimeField(
+        verbose_name='время звонка',
+        db_index=True,
+        null=True,
+        blank=True,
+    )
+    delivered_at = models.DateTimeField(
+        verbose_name='время доставки',
+        db_index=True,
+        null=True,
+        blank=True,
     )
 
     objects = OrderQuerySet.as_manager()

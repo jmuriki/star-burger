@@ -121,6 +121,7 @@ class OrderAdmin(admin.ModelAdmin):
         'firstname',
         'lastname',
         'phonenumber',
+        'comment',
     ]
     inlines = [
         OrderItemInline

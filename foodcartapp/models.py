@@ -181,7 +181,6 @@ class Order(models.Model):
         default=MANAGER,
         db_index=True,
     )
-
     address = models.CharField(
         max_length=200,
         verbose_name='адрес',
@@ -197,6 +196,11 @@ class Order(models.Model):
     phonenumber = PhoneNumberField(
         verbose_name='номер телефона',
         db_index=True,
+    )
+    comment = models.TextField(
+        verbose_name='комментарий к заказу',
+        max_length=500,
+        default="",
     )
 
     objects = OrderQuerySet.as_manager()

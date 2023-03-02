@@ -174,11 +174,25 @@ class Order(models.Model):
         (CLIENT, 'Доставлен'),
     ]
 
+    CASH = 'CH'
+    NON_CASH = ' NC'
+    PAYMENT_METHOD_CHOICES = [
+        (CASH, 'Наличные'),
+        (NON_CASH, 'Безнал'),
+    ]
+
     status = models.CharField(
         verbose_name='статус', 
         max_length=10,
         choices=STATUS_CHOISES,
         default=MANAGER,
+        db_index=True,
+    )
+    payment = models.CharField(
+        verbose_name='способ оплаты',
+        max_length=10,
+        choices=PAYMENT_METHOD_CHOICES,
+        default=NON_CASH,
         db_index=True,
     )
     address = models.CharField(

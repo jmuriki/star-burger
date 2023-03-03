@@ -126,15 +126,55 @@ class RestaurantMenuItem(models.Model):
 
 
 class OrderQuerySet(models.QuerySet):
-    def total(self):
-        orders = self.prefetch_related(Prefetch(
-            'order_items',
-            OrderItem.objects.annotate(subtotal=F('price') * F('quantity'))))
+    def extra(self):
+
+        menu_items = RestaurantMenuItem.objects.filter(availability=True)\
+            .prefetch_related('restaurant')
+
+        products = Product.objects.prefetch_related(
+            Prefetch(
+                'menu_items',
+                menu_items
+            )
+        )
+
+        order_items = OrderItem.objects.prefetch_related(
+            Prefetch(
+                'product',
+                products
+            )
+        )
+
+        orders = self.prefetch_related(
+            Prefetch(
+                'order_items',
+                order_items.annotate(subtotal=F('price') * F('quantity'))
+            )
+        )
+
         for order in orders:
             order_items = order.order_items.all()
+
+            order_items_in_restaurants = {}
+            for order_item in order_items:
+                order_items_in_restaurants[order_item.product] = [item.restaurant for item in order_item.product.menu_items.all()]
+
+            restaurants = []
+            for bunch in order_items_in_restaurants.values():
+                for restaurant in bunch:
+                    if restaurant not in restaurants:
+                        restaurants.append(restaurant)
+
+            order_in_reataurants = []
+            for restaurant in restaurants:
+                if all(restaurant in restaurants for item, restaurants in order_items_in_restaurants.items()):
+                    order_in_reataurants.append(restaurant)
+                    print(restaurant)
+
             subtotals = [item.subtotal for item in order_items]
             total = sum(subtotals)
             order.total = total
+            order.restaurants = order_in_reataurants
         return orders
 
 

@@ -143,38 +143,44 @@ class OrderQuerySet(models.QuerySet):
                 'product',
                 products
             )
-        )
+        ).annotate(subtotal=F('price') * F('quantity'))
 
-        orders = self.prefetch_related(
+        orders = self.exclude(status='CT').order_by('status').prefetch_related(
             Prefetch(
                 'order_items',
-                order_items.annotate(subtotal=F('price') * F('quantity'))
+                order_items
             )
-        )
+        ).prefetch_related('restaurant')
 
         for order in orders:
             order_items = order.order_items.all()
 
             order_items_in_restaurants = {}
             for order_item in order_items:
-                order_items_in_restaurants[order_item.product] = [item.restaurant for item in order_item.product.menu_items.all()]
+                order_items_in_restaurants[order_item.product] = [
+                    item.restaurant for item in
+                    order_item.product.menu_items.all()
+                ]
 
             restaurants = []
             for bunch in order_items_in_restaurants.values():
                 for restaurant in bunch:
                     if restaurant not in restaurants:
                         restaurants.append(restaurant)
-
-            order_in_reataurants = []
-            for restaurant in restaurants:
-                if all(restaurant in restaurants for item, restaurants in order_items_in_restaurants.items()):
-                    order_in_reataurants.append(restaurant)
-                    print(restaurant)
+            if not order.restaurant:
+                order_in_restaurants = []
+                for restaurant in restaurants:
+                    if all(restaurant in restaurants for item, restaurants
+                            in order_items_in_restaurants.items()):
+                        order_in_restaurants.append(restaurant)
+                order.restaurants = order_in_restaurants
+                order.restaurants_text = 'Может быть приготовлен ресторанами:'
+            else:
+                order.restaurants_text = 'Готовится в ресторане:'
 
             subtotals = [item.subtotal for item in order_items]
             total = sum(subtotals)
             order.total = total
-            order.restaurants = order_in_reataurants
         return orders
 
 
@@ -209,9 +215,9 @@ class Order(models.Model):
     COURIER = 'CR'
     CLIENT = 'CT'
     STATUS_CHOISES = [
-        (MANAGER, 'У менеджера'),
-        (RESTAURANT, 'В ресторане'),
-        (COURIER, 'У курьера'),
+        (MANAGER, 'Согласование'),
+        (RESTAURANT, 'Готовится'),
+        (COURIER, 'В пути'),
         (CLIENT, 'Доставлен'),
     ]
 
@@ -223,11 +229,19 @@ class Order(models.Model):
     ]
 
     status = models.CharField(
-        verbose_name='статус', 
+        verbose_name='статус',
         max_length=10,
         choices=STATUS_CHOISES,
         default=MANAGER,
         db_index=True,
+    )
+    restaurant = models.ForeignKey(
+        Restaurant,
+        related_name='orders',
+        verbose_name="ресторан",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
     )
     payment = models.CharField(
         verbose_name='способ оплаты',

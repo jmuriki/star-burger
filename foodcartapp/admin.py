@@ -121,6 +121,7 @@ class OrderAdmin(admin.ModelAdmin):
     fields = [
         'registered_at',
         'status',
+        'restaurant',
         'payment',
         'firstname',
         'lastname',

@@ -37,15 +37,19 @@
         <td>{{order.comment}}</td>
         <td>
           <details open>
-            <summary>Рестораны</summary>
-            <p>
-              {% for rest in order.restaurants %}
-                {{rest}}.
-              {% endfor %}
-            </p>
+            <summary>{{order.restaurants_text}}</summary>
+              {% if order.restaurant %}
+                <p>{{ order.restaurant }}</p>
+              {% else %}
+                {% for restaurant in order.restaurants %}
+                  <p>- {{restaurant}}</p>
+                {% endfor %}
+              {% endif %}
           </details>
         </td>
-        <td><a href="{% url "admin:foodcartapp_order_change" order.id %}?next={{ request.get_full_path|urlencode }}">Редактировать</a></td>
+        <td>
+          <a href="{% url "admin:foodcartapp_order_change" order.id %}?next={{ request.get_full_path|urlencode }}">Редактировать</a>
+        </td>
       </tr>
     {% endfor %}
    </table>

@@ -1,6 +1,6 @@
 import requests
 
-from geopy import distance
+from geopy.distance import distance, lonlat
 
 from star_burger.settings import YANDEX_API_KEY
 
@@ -25,4 +25,4 @@ def fetch_coordinates(address):
 
 
 def calculate_distance(a, b):
-    return distance.distance(a, b).km
+    return distance(lonlat(*a), lonlat(*b)).km

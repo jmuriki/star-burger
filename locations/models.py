@@ -16,3 +16,10 @@ class Location(models.Model):
         null=True,
         blank=True,
     )
+
+    class Meta:
+        verbose_name = 'локация'
+        verbose_name_plural = 'локации'
+
+    def __str__(self):
+        return self.address

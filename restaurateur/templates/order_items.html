@@ -42,7 +42,15 @@
                 <p>{{ order.restaurant }}</p>
               {% else %}
                 {% for restaurant in order.restaurants %}
-                  <p>- {{restaurant}}</p>
+                  {% for name, distance in restaurant.items %}
+                    <p>{{name}}
+                      {% if distance is 0 %}
+                        - Ошибка координат
+                      {% else %}
+                        - {{distance}} км
+                      {% endif %}
+                    </p>
+                  {% endfor %}
                 {% endfor %}
               {% endif %}
           </details>

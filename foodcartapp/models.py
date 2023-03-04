@@ -1,7 +1,12 @@
+import requests
+
 from django.db import models
 from django.db.models import F, Prefetch
 from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
+
+from locations.models import Location
+from locations.geo import fetch_coordinates, calculate_distance
 
 
 class Restaurant(models.Model):
@@ -128,8 +133,10 @@ class RestaurantMenuItem(models.Model):
 class OrderQuerySet(models.QuerySet):
     def extra(self):
 
+        restaurants = Restaurant.objects.all()
+
         menu_items = RestaurantMenuItem.objects.filter(availability=True)\
-            .prefetch_related('restaurant')
+            .prefetch_related(Prefetch('restaurant', restaurants))
 
         products = Product.objects.prefetch_related(
             Prefetch(
@@ -152,7 +159,50 @@ class OrderQuerySet(models.QuerySet):
             )
         ).prefetch_related('restaurant')
 
+        locations = Location.objects.all()
+
+        loc_lon_lat = {}
+
+        for location in locations:
+            loc_lon_lat[location.address] = {
+                'lon': location.lon,
+                'lat': location.lat,
+            }
+
+        for restaurant in restaurants:
+            if not any(restaurant.address == location
+                    for location in loc_lon_lat.keys()):
+                try:
+                    lon, lat = fetch_coordinates(restaurant.address)
+                    Location.objects.create(
+                        address=restaurant.address,
+                        lon=lon,
+                        lat=lat,
+                    )
+                except requests.exceptions.HTTPError:
+                    lon, lat = 0, 0
+                loc_lon_lat[restaurant.address] = {
+                    'lon': lon,
+                    'lat': lat,
+                }
+
         for order in orders:
+            if not any(order.address == location
+                    for location in loc_lon_lat.keys()):
+                try:
+                    lon, lat = fetch_coordinates(order.address)
+                    Location.objects.create(
+                        address=order.address,
+                        lon=lon,
+                        lat=lat,
+                    )
+                except requests.exceptions.HTTPError:
+                    lon, lat = 0, 0
+                loc_lon_lat[order.address] = {
+                    'lon': lon,
+                    'lat': lat,
+                }
+
             order_items = order.order_items.all()
 
             order_items_in_restaurants = {}
@@ -162,18 +212,39 @@ class OrderQuerySet(models.QuerySet):
                     order_item.product.menu_items.all()
                 ]
 
-            restaurants = []
+            restaurants_with_order_items = []
             for bunch in order_items_in_restaurants.values():
                 for restaurant in bunch:
-                    if restaurant not in restaurants:
-                        restaurants.append(restaurant)
+                    if restaurant not in restaurants_with_order_items:
+                        restaurants_with_order_items.append(restaurant)
+
             if not order.restaurant:
-                order_in_restaurants = []
-                for restaurant in restaurants:
-                    if all(restaurant in restaurants for item, restaurants
-                            in order_items_in_restaurants.items()):
-                        order_in_restaurants.append(restaurant)
-                order.restaurants = order_in_restaurants
+                restaurants_suitable_for_order = []
+                for restaurant in restaurants_with_order_items:
+                    if all(restaurant in restaurants for restaurants
+                            in order_items_in_restaurants.values()):
+                        restaurant_coordinates = (
+                            loc_lon_lat.get(restaurant.address)['lon'],
+                            loc_lon_lat.get(restaurant.address)['lat'],
+                        )
+                        order_coordinates = (
+                            loc_lon_lat.get(order.address)['lon'],
+                            loc_lon_lat.get(order.address)['lat'],
+                        )
+                        distance_to_order = calculate_distance(
+                            restaurant_coordinates,
+                            order_coordinates,
+                        )
+                        restaurants_suitable_for_order.append(
+                            (restaurant, round(distance_to_order, 3))
+                        )
+                order.restaurants = [
+                    {restaurant[0]: restaurant[1]} for restaurant
+                    in sorted(
+                        restaurants_suitable_for_order,
+                        key=lambda r: r[1]
+                    )
+                ]
                 order.restaurants_text = 'Может быть приготовлен ресторанами:'
             else:
                 order.restaurants_text = 'Готовится в ресторане:'

@@ -25,4 +25,6 @@ def fetch_coordinates(address):
 
 
 def calculate_distance(a, b):
+    if a == (0, 0) or b == (0, 0):
+        return 0
     return distance(lonlat(*a), lonlat(*b)).km

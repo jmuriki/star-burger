@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.timezone import now
 
 
 class Location(models.Model):
@@ -15,6 +16,10 @@ class Location(models.Model):
         verbose_name="Долгота",
         null=True,
         blank=True,
+    )
+    last_update = models.DateTimeField(
+        verbose_name="Последнее обновление",
+        default=now(),
     )
 
     class Meta:

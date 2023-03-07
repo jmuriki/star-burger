@@ -20,7 +20,7 @@ class Location(models.Model):
     )
     last_update = models.DateTimeField(
         verbose_name="Последнее обновление",
-        default=now(),
+        default=now,
     )
 
     class Meta:

@@ -6,6 +6,7 @@ class Location(models.Model):
     address = models.CharField(
         verbose_name='Адрес',
         max_length=100,
+        unique=True,
     )
     lat = models.FloatField(
         verbose_name="Широта",

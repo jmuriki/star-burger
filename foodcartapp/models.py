@@ -279,6 +279,13 @@ class OrderItem(models.Model):
         on_delete=models.CASCADE,
     )
 
+    class Meta:
+        verbose_name = 'элемент заказ'
+        verbose_name_plural = 'элементы заказа'
+
+    def __str__(self):
+        return self.product.name
+
 
 class Order(models.Model):
 

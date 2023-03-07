@@ -157,7 +157,7 @@ class OrderQuerySet(models.QuerySet):
                 'order_items',
                 order_items
             )
-        ).prefetch_related('restaurant')
+        ).prefetch_related('executing_restaurant')
 
         locations = Location.objects.all()
 
@@ -218,7 +218,7 @@ class OrderQuerySet(models.QuerySet):
                     if restaurant not in restaurants_with_order_items:
                         restaurants_with_order_items.append(restaurant)
 
-            if not order.restaurant:
+            if not order.executing_restaurant:
                 restaurants_suitable_for_order = []
                 for restaurant in restaurants_with_order_items:
                     if all(restaurant in restaurants for restaurants
@@ -281,35 +281,31 @@ class OrderItem(models.Model):
 
 class Order(models.Model):
 
-    MANAGER = 'MR'
-    RESTAURANT = 'RT'
-    COURIER = 'CR'
-    CLIENT = 'CT'
     STATUS_CHOISES = [
-        (MANAGER, 'Согласование'),
-        (RESTAURANT, 'Готовится'),
-        (COURIER, 'В пути'),
-        (CLIENT, 'Доставлен'),
+        ('MANAGER', 'Согласование'),
+        ('RESTAURANT', 'Готовится'),
+        ('COURIER', 'В пути'),
+        ('CLIENT', 'Доставлен'),
     ]
 
-    CASH = 'CH'
-    NON_CASH = ' NC'
     PAYMENT_METHOD_CHOICES = [
-        (CASH, 'Наличные'),
-        (NON_CASH, 'Безнал'),
+        ('NONE', 'Не выбран'),
+        ('CASH', 'Наличные'),
+        ('CARD', 'Карта'),
+        ('ONLINE', 'На сайте')
     ]
 
     status = models.CharField(
         verbose_name='статус',
         max_length=10,
         choices=STATUS_CHOISES,
-        default=MANAGER,
+        default='MANAGER',
         db_index=True,
     )
-    restaurant = models.ForeignKey(
+    executing_restaurant = models.ForeignKey(
         Restaurant,
         related_name='orders',
-        verbose_name="ресторан",
+        verbose_name="испоняющий ресторан",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -318,7 +314,7 @@ class Order(models.Model):
         verbose_name='способ оплаты',
         max_length=10,
         choices=PAYMENT_METHOD_CHOICES,
-        default=NON_CASH,
+        default='NONE',
         db_index=True,
     )
     address = models.CharField(
@@ -340,7 +336,6 @@ class Order(models.Model):
     comment = models.TextField(
         verbose_name='комментарий к заказу',
         max_length=500,
-        default="",
         blank=True,
     )
     registered_at = models.DateTimeField(

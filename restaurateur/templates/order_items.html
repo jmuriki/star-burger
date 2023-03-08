@@ -38,10 +38,10 @@
         <td>
           <details open>
             <summary>{{order.restaurants_text}}</summary>
-              {% if order.restaurant %}
-                <p>{{ order.restaurant }}</p>
+              {% if order.executing_restaurant %}
+                <p>{{ order.executing_restaurant }}</p>
               {% else %}
-                {% for restaurant in order.restaurants %}
+                {% for restaurant in order.capable_restaurants %}
                   {% for name, distance in restaurant.items %}
                     <p>{{name}}
                       {% if distance is 0 %}

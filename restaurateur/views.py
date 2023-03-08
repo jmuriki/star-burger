@@ -6,6 +6,8 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 from foodcartapp.models import Product, Restaurant, Order
+from locations.geo import calculate_distance, fetch_locations_with_coordinates
+from locations.models import Location
 
 
 class Login(forms.Form):
@@ -89,6 +91,74 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
+    locations = Location.objects.all()
+    loc_lon_lat = fetch_locations_with_coordinates(locations)
+
+    orders = Order.objects.exclude(status='CLIENT').order_by('status')\
+        .prefetch_related('executing_restaurant').with_prices()
+    locations_with_coordinates = fetch_locations_with_coordinates(
+        orders,
+        loc_lon_lat
+    )
+    if locations_with_coordinates:
+        loc_lon_lat.update(locations_with_coordinates)
+
+    restaurants = Restaurant.objects.all()
+    locations_with_coordinates = fetch_locations_with_coordinates(
+        restaurants,
+        loc_lon_lat
+    )
+    if locations_with_coordinates:
+        loc_lon_lat.update(locations_with_coordinates)
+
+    for order in orders:
+
+        order_items = order.order_items.all()
+
+        order_items_in_restaurants = {}
+        for order_item in order_items:
+            order_items_in_restaurants[order_item.product] = [
+                item.restaurant for item in
+                order_item.product.menu_items.all()
+            ]
+
+        restaurants_with_order_items = []
+        for bunch in order_items_in_restaurants.values():
+            for restaurant in bunch:
+                if restaurant not in restaurants_with_order_items:
+                    restaurants_with_order_items.append(restaurant)
+
+        if not order.executing_restaurant:
+            capable_restaurants = []
+            for restaurant in restaurants_with_order_items:
+                if all(restaurant in restaurants for restaurants
+                        in order_items_in_restaurants.values()):
+                    restaurant_coordinates = (
+                        loc_lon_lat.get(restaurant.address)['lon'],
+                        loc_lon_lat.get(restaurant.address)['lat'],
+                    )
+                    order_coordinates = (
+                        loc_lon_lat.get(order.address)['lon'],
+                        loc_lon_lat.get(order.address)['lat'],
+                    )
+                    distance_to_order = calculate_distance(
+                        restaurant_coordinates,
+                        order_coordinates,
+                    )
+                    capable_restaurants.append(
+                        (restaurant.name, round(distance_to_order, 3))
+                    )
+            order.capable_restaurants = [
+                {restaurant[0]: restaurant[1]} for restaurant
+                in sorted(
+                    capable_restaurants,
+                    key=lambda restaurant: restaurant[1]
+                )
+            ]
+            order.restaurants_text = 'Может быть приготовлен ресторанами:'
+        else:
+            order.restaurants_text = 'Готовится в ресторане:'
+
     return render(request, template_name='order_items.html', context={
-        'orders': Order.objects.extra(),
+        'orders': orders,
     })

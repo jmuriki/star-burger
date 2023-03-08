@@ -1,12 +1,7 @@
-import requests
-
 from django.db import models
 from django.db.models import F, Prefetch
 from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
-
-from locations.models import Location
-from locations.geo import fetch_coordinates, calculate_distance
 
 
 class Restaurant(models.Model):
@@ -33,16 +28,6 @@ class Restaurant(models.Model):
         return self.name
 
 
-class ProductQuerySet(models.QuerySet):
-    def available(self):
-        products = (
-            RestaurantMenuItem.objects
-            .filter(availability=True)
-            .values_list('product')
-        )
-        return self.filter(pk__in=products)
-
-
 class ProductCategory(models.Model):
     name = models.CharField(
         'название',
@@ -55,6 +40,26 @@ class ProductCategory(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ProductQuerySet(models.QuerySet):
+    def available(self):
+        products = (
+            RestaurantMenuItem.objects
+            .filter(availability=True)
+            .values_list('product')
+        )
+        return self.filter(pk__in=products)
+
+
+class ProductWithMenuItemsManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset()\
+            .prefetch_related(Prefetch(
+                'menu_items',
+                RestaurantMenuItem.available_in.all()
+            )
+        )
 
 
 class Product(models.Model):
@@ -91,6 +96,7 @@ class Product(models.Model):
     )
 
     objects = ProductQuerySet.as_manager()
+    with_menu_items = ProductWithMenuItemsManager()
 
     class Meta:
         verbose_name = 'товар'
@@ -98,6 +104,12 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class RestaurantMenuItemAvailableInManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(availability=True)\
+            .prefetch_related('restaurant', 'product')
 
 
 class RestaurantMenuItem(models.Model):
@@ -119,6 +131,9 @@ class RestaurantMenuItem(models.Model):
         db_index=True
     )
 
+    objects = models.Manager()
+    available_in = RestaurantMenuItemAvailableInManager()
+
     class Meta:
         verbose_name = 'пункт меню ресторана'
         verbose_name_plural = 'пункты меню ресторана'
@@ -130,129 +145,13 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
-class OrderQuerySet(models.QuerySet):
-    def extra(self):
-
-        restaurants = Restaurant.objects.all()
-
-        menu_items = RestaurantMenuItem.objects.filter(availability=True)\
-            .prefetch_related(Prefetch('restaurant', restaurants))
-
-        products = Product.objects.prefetch_related(
-            Prefetch(
-                'menu_items',
-                menu_items
+class OrderItemWithProductManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related(Prefetch(
+                'product',
+                Product.with_menu_items.all()
             )
         )
-
-        order_items = OrderItem.objects.prefetch_related(
-            Prefetch(
-                'product',
-                products
-            )
-        ).annotate(subtotal=F('price') * F('quantity'))
-
-        orders = self.exclude(status='CT').order_by('status').prefetch_related(
-            Prefetch(
-                'order_items',
-                order_items
-            )
-        ).prefetch_related('executing_restaurant')
-
-        locations = Location.objects.all()
-
-        loc_lon_lat = {}
-
-        for location in locations:
-            loc_lon_lat[location.address] = {
-                'lon': location.lon,
-                'lat': location.lat,
-            }
-
-        for restaurant in restaurants:
-            if not any(restaurant.address == location
-                    for location in loc_lon_lat.keys()):
-                try:
-                    lon, lat = fetch_coordinates(restaurant.address)
-                    Location.objects.create(
-                        address=restaurant.address,
-                        lon=lon,
-                        lat=lat,
-                    )
-                except requests.exceptions.HTTPError:
-                    lon, lat = 0, 0
-                loc_lon_lat[restaurant.address] = {
-                    'lon': lon,
-                    'lat': lat,
-                }
-
-        for order in orders:
-            if not any(order.address == location
-                    for location in loc_lon_lat.keys()):
-                try:
-                    lon, lat = fetch_coordinates(order.address)
-                    Location.objects.create(
-                        address=order.address,
-                        lon=lon,
-                        lat=lat,
-                    )
-                except requests.exceptions.HTTPError:
-                    lon, lat = 0, 0
-                loc_lon_lat[order.address] = {
-                    'lon': lon,
-                    'lat': lat,
-                }
-
-            order_items = order.order_items.all()
-
-            order_items_in_restaurants = {}
-            for order_item in order_items:
-                order_items_in_restaurants[order_item.product] = [
-                    item.restaurant for item in
-                    order_item.product.menu_items.all()
-                ]
-
-            restaurants_with_order_items = []
-            for bunch in order_items_in_restaurants.values():
-                for restaurant in bunch:
-                    if restaurant not in restaurants_with_order_items:
-                        restaurants_with_order_items.append(restaurant)
-
-            if not order.executing_restaurant:
-                restaurants_suitable_for_order = []
-                for restaurant in restaurants_with_order_items:
-                    if all(restaurant in restaurants for restaurants
-                            in order_items_in_restaurants.values()):
-                        restaurant_coordinates = (
-                            loc_lon_lat.get(restaurant.address)['lon'],
-                            loc_lon_lat.get(restaurant.address)['lat'],
-                        )
-                        order_coordinates = (
-                            loc_lon_lat.get(order.address)['lon'],
-                            loc_lon_lat.get(order.address)['lat'],
-                        )
-                        distance_to_order = calculate_distance(
-                            restaurant_coordinates,
-                            order_coordinates,
-                        )
-                        restaurants_suitable_for_order.append(
-                            (restaurant, round(distance_to_order, 3))
-                        )
-                order.restaurants = [
-                    {restaurant[0]: restaurant[1]} for restaurant
-                    in sorted(
-                        restaurants_suitable_for_order,
-                        key=lambda r: r[1]
-                    )
-                ]
-                order.restaurants_text = 'Может быть приготовлен ресторанами:'
-            else:
-                order.restaurants_text = 'Готовится в ресторане:'
-
-            subtotals = [item.subtotal for item in order_items]
-            total = sum(subtotals)
-            order.total = total
-        return orders
 
 
 class OrderItem(models.Model):
@@ -279,12 +178,30 @@ class OrderItem(models.Model):
         on_delete=models.CASCADE,
     )
 
+    objects = models.Manager()
+    with_products = OrderItemWithProductManager()
+
     class Meta:
         verbose_name = 'элемент заказ'
         verbose_name_plural = 'элементы заказа'
 
     def __str__(self):
         return self.product.name
+
+
+class OrderQuerySet(models.QuerySet):
+    def with_prices(self):
+        orders = self.prefetch_related(
+            Prefetch(
+                'order_items',
+                OrderItem.with_products\
+                .annotate(subtotal=F('price') * F('quantity'))
+            )
+        )
+        for order in orders:
+            subtotals = [item.subtotal for item in order.order_items.all()]
+            order.total = sum(subtotals)
+        return orders
 
 
 class Order(models.Model):

@@ -4,9 +4,8 @@ from django.templatetags.static import static
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.serializers import ModelSerializer, ListField
 
-from .models import Product, Order, OrderItem
+from .serializers import OrderSerializer
 
 
 def banners_list_api(request):
@@ -61,50 +60,10 @@ def product_list_api(request):
     })
 
 
-class OrderItemSerializer(ModelSerializer):
-    class Meta:
-        model = OrderItem
-        fields = ['product', 'quantity']
-
-
-class OrderSerializer(ModelSerializer):
-    products = ListField(
-        child=OrderItemSerializer(),
-        allow_empty=False,
-        write_only=True,
-    )
-
-    class Meta:
-        model = Order
-        fields = [
-            'id',
-            'products',
-            'address',
-            'firstname',
-            'lastname',
-            'phonenumber',
-        ]
-
-
 @api_view(['POST'])
 @transaction.atomic
 def register_order(request):
     serializer = OrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    valid_payload = serializer.validated_data
-    order = Order.objects.create(
-        address=valid_payload['address'],
-        firstname=valid_payload['firstname'],
-        lastname=valid_payload['lastname'],
-        phonenumber=valid_payload['phonenumber'],
-    )
-    for clause in valid_payload['products']:
-        product = Product.objects.get(name=clause['product'])
-        OrderItem.objects.create(
-            product=product,
-            quantity=clause['quantity'],
-            price=product.price,
-            order=order,
-        )
-    serializer = OrderSerializer(order)
+    serializer.save()
     return Response(serializer.data)

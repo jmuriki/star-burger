@@ -57,7 +57,7 @@ class ProductWithMenuItemsManager(models.Manager):
         return super().get_queryset()\
             .prefetch_related(Prefetch(
                 'menu_items',
-                RestaurantMenuItem.available_in.all()
+                RestaurantMenuItem.objects.available_in()
             )
         )
 
@@ -106,9 +106,9 @@ class Product(models.Model):
         return self.name
 
 
-class RestaurantMenuItemAvailableInManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().filter(availability=True)\
+class RestaurantMenuItemQuerySet(models.QuerySet):
+    def available_in(self):
+        return self.filter(availability=True)\
             .prefetch_related('restaurant', 'product')
 
 
@@ -131,8 +131,7 @@ class RestaurantMenuItem(models.Model):
         db_index=True
     )
 
-    objects = models.Manager()
-    available_in = RestaurantMenuItemAvailableInManager()
+    objects = RestaurantMenuItemQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'пункт меню ресторана'
@@ -145,9 +144,9 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
-class OrderItemWithProductManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().prefetch_related(Prefetch(
+class OrderItemQuerySet(models.QuerySet):
+    def with_products(self):
+        return self.prefetch_related(Prefetch(
                 'product',
                 Product.with_menu_items.all()
             )
@@ -178,8 +177,7 @@ class OrderItem(models.Model):
         on_delete=models.CASCADE,
     )
 
-    objects = models.Manager()
-    with_products = OrderItemWithProductManager()
+    objects = OrderItemQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'элемент заказ'
@@ -194,7 +192,7 @@ class OrderQuerySet(models.QuerySet):
         orders = self.prefetch_related(
             Prefetch(
                 'order_items',
-                OrderItem.with_products\
+                OrderItem.objects.with_products()\
                 .annotate(subtotal=F('price') * F('quantity'))
             )
         )

@@ -9,8 +9,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    products = serializers.ListField(
-        child=OrderItemSerializer(),
+    products = OrderItemSerializer(
+        many=True,
         allow_empty=False,
         write_only=True,
     )

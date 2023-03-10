@@ -103,30 +103,31 @@ def view_orders(request):
     )
 
     for order in orders:
-
+        """For every order item collect all capable restaurants"""
         order_items = order.order_items.all()
-
-        order_items_in_restaurants = {}
+        order_items_with_capable_restaurants = {}
         for order_item in order_items:
-            order_items_in_restaurants[order_item.product] = [
+            order_items_with_capable_restaurants[order_item.product] = [
                 item.restaurant for item in
                 order_item.product.menu_items.all()
             ]
 
+        """Collect distinct restaurants with any order item available"""
         restaurants_with_order_items = []
-        for bunch in order_items_in_restaurants.values():
+        for bunch in order_items_with_capable_restaurants.values():
             for restaurant in bunch:
                 if restaurant not in restaurants_with_order_items:
                     restaurants_with_order_items.append(restaurant)
 
         if not order.executing_restaurant:
+            """Choose restaurant only with all order items available"""
             capable_restaurants = []
-            for restaurant in restaurants_with_order_items:
-                if all(restaurant in restaurants for restaurants
-                        in order_items_in_restaurants.values()):
+            for restaurant_with_order_items in restaurants_with_order_items:
+                if all(restaurant_with_order_items in restaurants for restaurants
+                        in order_items_with_capable_restaurants.values()):
                     restaurant_coordinates = (
-                        addresses_lon_lat.get(restaurant.address)['lon'],
-                        addresses_lon_lat.get(restaurant.address)['lat'],
+                        addresses_lon_lat.get(restaurant_with_order_items.address)['lon'],
+                        addresses_lon_lat.get(restaurant_with_order_items.address)['lat'],
                     )
                     order_coordinates = (
                         addresses_lon_lat.get(order.address)['lon'],
@@ -137,7 +138,7 @@ def view_orders(request):
                         order_coordinates,
                     )
                     capable_restaurants.append(
-                        (restaurant.name, round(distance_to_order, 3))
+                        (restaurant_with_order_items.name, round(distance_to_order, 3))
                     )
             order.capable_restaurants = [
                 {restaurant[0]: restaurant[1]} for restaurant

@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 from foodcartapp.models import Product, Restaurant, Order
-from locations.geo import calculate_distance, fetch_locations_with_coordinates
+from locations.geo import calculate_distance, add_locations_with_coordinates
 from locations.models import Location
 
 
@@ -91,25 +91,16 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    locations = Location.objects.all()
-    loc_lon_lat = fetch_locations_with_coordinates(locations)
-
     orders = Order.objects.exclude(status='CLIENT').order_by('status')\
         .prefetch_related('executing_restaurant').with_prices()
-    locations_with_coordinates = fetch_locations_with_coordinates(
-        orders,
-        loc_lon_lat
-    )
-    if locations_with_coordinates:
-        loc_lon_lat.update(locations_with_coordinates)
-
     restaurants = Restaurant.objects.all()
-    locations_with_coordinates = fetch_locations_with_coordinates(
+    stored_locations = Location.objects.all()
+
+    addresses_lon_lat = add_locations_with_coordinates(
+        orders,
         restaurants,
-        loc_lon_lat
+        stored_locations=stored_locations,
     )
-    if locations_with_coordinates:
-        loc_lon_lat.update(locations_with_coordinates)
 
     for order in orders:
 
@@ -134,12 +125,12 @@ def view_orders(request):
                 if all(restaurant in restaurants for restaurants
                         in order_items_in_restaurants.values()):
                     restaurant_coordinates = (
-                        loc_lon_lat.get(restaurant.address)['lon'],
-                        loc_lon_lat.get(restaurant.address)['lat'],
+                        addresses_lon_lat.get(restaurant.address)['lon'],
+                        addresses_lon_lat.get(restaurant.address)['lat'],
                     )
                     order_coordinates = (
-                        loc_lon_lat.get(order.address)['lon'],
-                        loc_lon_lat.get(order.address)['lat'],
+                        addresses_lon_lat.get(order.address)['lon'],
+                        addresses_lon_lat.get(order.address)['lat'],
                     )
                     distance_to_order = calculate_distance(
                         restaurant_coordinates,

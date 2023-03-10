@@ -40,10 +40,10 @@ def add_locations_with_coordinates(*locations_groups, stored_locations):
 
     if stored_locations.count():
         for location in stored_locations:
-                addresses_with_coordinates[location.address] = {
-                    'lon': location.lon,
-                    'lat': location.lat,
-                }
+            addresses_with_coordinates[location.address] = {
+                'lon': location.lon,
+                'lat': location.lat,
+            }
 
     for group in locations_groups:
         if group.count():
@@ -53,7 +53,9 @@ def add_locations_with_coordinates(*locations_groups, stored_locations):
                         for address in addresses_with_coordinates.keys()):
                     try:
                         coordinates = fetch_coordinates(location_object.address)
-                        coordinates = [float(coordinate) for coordinate in coordinates]
+                        coordinates = [
+                            float(coordinate) for coordinate in coordinates
+                        ]
                     except requests.exceptions.HTTPError:
                         coordinates = None
                     except ValueError:

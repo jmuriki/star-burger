@@ -6,6 +6,12 @@ from star_burger.settings import YANDEX_API_KEY
 from locations.models import Location
 
 
+def calculate_distance(a, b):
+    if a == (0, 0) or b == (0, 0):
+        return 0
+    return distance(lonlat(*a), lonlat(*b)).km
+
+
 def fetch_coordinates(address):
     apikey = YANDEX_API_KEY
     base_url = "https://geocode-maps.yandex.ru/1.x"
@@ -23,12 +29,6 @@ def fetch_coordinates(address):
     most_relevant = found_places[0]
     lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
     return lon, lat
-
-
-def calculate_distance(a, b):
-    if a == (0, 0) or b == (0, 0):
-        return 0
-    return distance(lonlat(*a), lonlat(*b)).km
 
 
 def add_locations_with_coordinates(*locations_groups, stored_locations):
@@ -52,13 +52,17 @@ def add_locations_with_coordinates(*locations_groups, stored_locations):
                     location_object.address == address
                         for address in addresses_with_coordinates.keys()):
                     try:
-                        lon, lat = fetch_coordinates(location_object.address)
+                        coordinates = fetch_coordinates(location_object.address)
+                    except requests.exceptions.HTTPError:
+                        lon, lat = 0, 0
+                    if coordinates:
+                        lon, lat = coordinates
                         Location.objects.create(
                             address=location_object.address,
                             lon=lon,
                             lat=lat,
                         )
-                    except requests.exceptions.HTTPError:
+                    else:
                         lon, lat = 0, 0
                     addresses_with_coordinates[location_object.address] = {
                         'lon': lon,

@@ -6,8 +6,6 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 from foodcartapp.models import Product, Restaurant, Order
-from locations.geo import calculate_distance, add_locations_with_coordinates
-from locations.models import Location
 
 
 class Login(forms.Form):
@@ -69,8 +67,14 @@ def view_products(request):
 
     products_with_restaurant_availability = []
     for product in products:
-        availability = {item.restaurant_id: item.availability for item in product.menu_items.all()}
-        ordered_availability = [availability.get(restaurant.id, False) for restaurant in restaurants]
+        availability = {
+            item.restaurant_id: item.availability
+            for item in product.menu_items.all()
+        }
+        ordered_availability = [
+            availability.get(restaurant.id, False)
+            for restaurant in restaurants
+        ]
 
         products_with_restaurant_availability.append(
             (product, ordered_availability)
@@ -92,61 +96,10 @@ def view_restaurants(request):
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
     orders = Order.objects.exclude(status='CLIENT').order_by('status')\
-        .prefetch_related('executing_restaurant').with_prices()
-    restaurants = Restaurant.objects.all()
-    stored_locations = Location.objects.all()
-
-    addresses_lon_lat = add_locations_with_coordinates(
-        orders,
-        restaurants,
-        stored_locations=stored_locations,
-    )
-
+        .prefetch_related('executing_restaurant')\
+        .with_prices().with_capable_restaurants()
     for order in orders:
-        """For every order item collect all capable restaurants"""
-        order_items = order.order_items.all()
-        order_items_with_capable_restaurants = {}
-        for order_item in order_items:
-            order_items_with_capable_restaurants[order_item.product] = [
-                item.restaurant for item in
-                order_item.product.menu_items.all()
-            ]
-
-        """Collect distinct restaurants with any order item available"""
-        restaurants_with_order_items = []
-        for bunch in order_items_with_capable_restaurants.values():
-            for restaurant in bunch:
-                if restaurant not in restaurants_with_order_items:
-                    restaurants_with_order_items.append(restaurant)
-
         if not order.executing_restaurant:
-            """Choose restaurant only with all order items available"""
-            capable_restaurants = []
-            for restaurant_with_order_items in restaurants_with_order_items:
-                if all(restaurant_with_order_items in restaurants for restaurants
-                        in order_items_with_capable_restaurants.values()):
-                    restaurant_coordinates = (
-                        addresses_lon_lat.get(restaurant_with_order_items.address)['lon'],
-                        addresses_lon_lat.get(restaurant_with_order_items.address)['lat'],
-                    )
-                    order_coordinates = (
-                        addresses_lon_lat.get(order.address)['lon'],
-                        addresses_lon_lat.get(order.address)['lat'],
-                    )
-                    distance_to_order = calculate_distance(
-                        restaurant_coordinates,
-                        order_coordinates,
-                    )
-                    capable_restaurants.append(
-                        (restaurant_with_order_items.name, round(distance_to_order, 3))
-                    )
-            order.capable_restaurants = [
-                {restaurant[0]: restaurant[1]} for restaurant
-                in sorted(
-                    capable_restaurants,
-                    key=lambda restaurant: restaurant[1]
-                )
-            ]
             order.restaurants_text = 'Может быть приготовлен ресторанами:'
         else:
             order.restaurants_text = 'Готовится в ресторане:'

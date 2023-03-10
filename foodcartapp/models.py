@@ -3,6 +3,9 @@ from django.db.models import F, Prefetch
 from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
 
+from locations.geo import calculate_distance, add_locations_with_coordinates
+from locations.models import Location
+
 
 class Restaurant(models.Model):
     name = models.CharField(
@@ -192,13 +195,74 @@ class OrderQuerySet(models.QuerySet):
         orders = self.prefetch_related(
             Prefetch(
                 'order_items',
-                OrderItem.objects.with_products()\
+                OrderItem.objects.with_products()
                 .annotate(subtotal=F('price') * F('quantity'))
             )
         )
         for order in orders:
             subtotals = [item.subtotal for item in order.order_items.all()]
             order.total = sum(subtotals)
+        return orders
+
+    def with_capable_restaurants(self):
+        orders = self
+        restaurants = Restaurant.objects.all()
+        stored_locations = Location.objects.all()
+
+        addresses_lon_lat = add_locations_with_coordinates(
+            orders,
+            restaurants,
+            stored_locations=stored_locations,
+        )
+
+        for order in orders:
+            """For every order item collect all capable restaurants"""
+            order_items = order.order_items.all()
+            order_items_with_capable_restaurants = {}
+            for order_item in order_items:
+                order_items_with_capable_restaurants[order_item.product] = [
+                    item.restaurant for item in
+                    order_item.product.menu_items.all()
+                ]
+
+            """Collect distinct restaurants with any order item available"""
+            restaurants_with_any_item = []
+            for bunch in order_items_with_capable_restaurants.values():
+                for restaurant in bunch:
+                    if restaurant not in restaurants_with_any_item:
+                        restaurants_with_any_item.append(restaurant)
+
+            if not order.executing_restaurant:
+                """Choose restaurant only with all order items available"""
+                capable_restaurants = []
+                for restaurant_with_item in restaurants_with_any_item:
+                    if all(restaurant_with_item in restaurants for restaurants
+                            in order_items_with_capable_restaurants.values()):
+                        restaurant_coordinates = (
+                            addresses_lon_lat.get(restaurant_with_item.address)['lon'],
+                            addresses_lon_lat.get(restaurant_with_item.address)['lat'],
+                        )
+                        order_coordinates = (
+                            addresses_lon_lat.get(order.address)['lon'],
+                            addresses_lon_lat.get(order.address)['lat'],
+                        )
+                        distance_to_order = calculate_distance(
+                            restaurant_coordinates,
+                            order_coordinates,
+                        )
+                        capable_restaurants.append(
+                            (
+                                restaurant_with_item.name,
+                                round(distance_to_order, 3)
+                            )
+                        )
+                order.capable_restaurants = [
+                    {restaurant[0]: restaurant[1]} for restaurant
+                    in sorted(
+                        capable_restaurants,
+                        key=lambda restaurant: restaurant[1]
+                    )
+                ]
         return orders
 
 

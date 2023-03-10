@@ -53,8 +53,11 @@ def add_locations_with_coordinates(*locations_groups, stored_locations):
                         for address in addresses_with_coordinates.keys()):
                     try:
                         coordinates = fetch_coordinates(location_object.address)
+                        coordinates = [float(coordinate) for coordinate in coordinates]
                     except requests.exceptions.HTTPError:
-                        lon, lat = 0, 0
+                        coordinates = None
+                    except ValueError:
+                        coordinates = None
                     if coordinates:
                         lon, lat = coordinates
                         Location.objects.create(

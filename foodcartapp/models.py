@@ -54,11 +54,8 @@ class ProductQuerySet(models.QuerySet):
         )
         return self.filter(pk__in=products)
 
-
-class ProductWithMenuItemsManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset()\
-            .prefetch_related(Prefetch(
+    def with_menu_items(self):
+        return self.prefetch_related(Prefetch(
                 'menu_items',
                 RestaurantMenuItem.objects.available_in()
             )
@@ -99,7 +96,6 @@ class Product(models.Model):
     )
 
     objects = ProductQuerySet.as_manager()
-    with_menu_items = ProductWithMenuItemsManager()
 
     class Meta:
         verbose_name = 'товар'
@@ -112,7 +108,7 @@ class Product(models.Model):
 class RestaurantMenuItemQuerySet(models.QuerySet):
     def available_in(self):
         return self.filter(availability=True)\
-            .prefetch_related('restaurant', 'product')
+            .prefetch_related('restaurant')
 
 
 class RestaurantMenuItem(models.Model):
@@ -151,9 +147,12 @@ class OrderItemQuerySet(models.QuerySet):
     def with_products(self):
         return self.prefetch_related(Prefetch(
                 'product',
-                Product.with_menu_items.all()
+                Product.objects.with_menu_items()
             )
         )
+
+    def subtotal(self):
+        return self.annotate(subtotal=F('price') * F('quantity'))
 
 
 class OrderItem(models.Model):
@@ -183,7 +182,7 @@ class OrderItem(models.Model):
     objects = OrderItemQuerySet.as_manager()
 
     class Meta:
-        verbose_name = 'элемент заказ'
+        verbose_name = 'элемент заказа'
         verbose_name_plural = 'элементы заказа'
 
     def __str__(self):
@@ -191,18 +190,22 @@ class OrderItem(models.Model):
 
 
 class OrderQuerySet(models.QuerySet):
+    def actual_status(self):
+        return self.exclude(status='CLIENT').order_by('status')
+
+
     def with_prices(self):
         orders = self.prefetch_related(
             Prefetch(
                 'order_items',
-                OrderItem.objects.with_products()
-                .annotate(subtotal=F('price') * F('quantity'))
+                OrderItem.objects.with_products().subtotal()
             )
         )
         for order in orders:
             subtotals = [item.subtotal for item in order.order_items.all()]
             order.total = sum(subtotals)
         return orders
+
 
     def with_capable_restaurants(self):
         orders = self
@@ -216,8 +219,8 @@ class OrderQuerySet(models.QuerySet):
         )
 
         for order in orders:
-            """For every order item collect all capable restaurants"""
             order_items = order.order_items.all()
+            """For every order item collecting all capable restaurants"""
             order_items_with_capable_restaurants = {}
             for order_item in order_items:
                 order_items_with_capable_restaurants[order_item.product] = [
@@ -225,7 +228,7 @@ class OrderQuerySet(models.QuerySet):
                     order_item.product.menu_items.all()
                 ]
 
-            """Collect distinct restaurants with any order item available"""
+            """Collecting distinct restaurants with any order item available"""
             restaurants_with_any_item = []
             for bunch in order_items_with_capable_restaurants.values():
                 for restaurant in bunch:
@@ -233,7 +236,7 @@ class OrderQuerySet(models.QuerySet):
                         restaurants_with_any_item.append(restaurant)
 
             if not order.executing_restaurant:
-                """Choose restaurant only with all order items available"""
+                """Choosing restaurant with only all order items available"""
                 capable_restaurants = []
                 for restaurant_with_item in restaurants_with_any_item:
                     if all(restaurant_with_item in restaurants for restaurants
@@ -269,10 +272,10 @@ class OrderQuerySet(models.QuerySet):
 class Order(models.Model):
 
     STATUS_CHOISES = [
-        ('MANAGER', 'Согласование'),
-        ('RESTAURANT', 'Готовится'),
-        ('COURIER', 'В пути'),
-        ('CLIENT', 'Доставлен'),
+        ('0 - MANAGER', 'Согласование'),
+        ('1 - RESTAURANT', 'Готовится'),
+        ('2 - COURIER', 'В пути'),
+        ('3 - CLIENT', 'Доставлен'),
     ]
 
     PAYMENT_METHOD_CHOICES = [
@@ -284,15 +287,15 @@ class Order(models.Model):
 
     status = models.CharField(
         verbose_name='статус',
-        max_length=10,
+        max_length=14,
         choices=STATUS_CHOISES,
-        default='MANAGER',
+        default='0 - MANAGER',
         db_index=True,
     )
     executing_restaurant = models.ForeignKey(
         Restaurant,
         related_name='orders',
-        verbose_name="испоняющий ресторан",
+        verbose_name="исполняющий ресторан",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

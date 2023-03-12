@@ -4,9 +4,9 @@ from locations.models import Location
 
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
-	fields = [
-		'address',
-		'lon',
-		'lat',
-		'last_update',
-	]
+    fields = [
+        'address',
+        'lon',
+        'lat',
+        'last_update',
+    ]

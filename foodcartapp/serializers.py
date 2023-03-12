@@ -32,7 +32,9 @@ class OrderSerializer(serializers.ModelSerializer):
         order_items = []
         for item_payload in order_items_validated_data:
             item_payload['order'] = order
-            item_payload['price'] = Product.objects.get(name=item_payload['product']).price
+            item_payload['price'] = Product.objects.get(
+                name=item_payload['product']
+            ).price
             order_items.append(OrderItem(**item_payload))
         OrderItem.objects.bulk_create(order_items)
         return order

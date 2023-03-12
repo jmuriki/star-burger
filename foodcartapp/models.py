@@ -193,7 +193,6 @@ class OrderQuerySet(models.QuerySet):
     def actual_status(self):
         return self.exclude(status='CLIENT').order_by('status')
 
-
     def with_prices(self):
         orders = self.prefetch_related(
             Prefetch(
@@ -205,7 +204,6 @@ class OrderQuerySet(models.QuerySet):
             subtotals = [item.subtotal for item in order.order_items.all()]
             order.total = sum(subtotals)
         return orders
-
 
     def with_capable_restaurants(self):
         orders = self
@@ -242,8 +240,12 @@ class OrderQuerySet(models.QuerySet):
                     if all(restaurant_with_item in restaurants for restaurants
                             in order_items_with_capable_restaurants.values()):
                         restaurant_coordinates = (
-                            addresses_lon_lat.get(restaurant_with_item.address)['lon'],
-                            addresses_lon_lat.get(restaurant_with_item.address)['lat'],
+                            addresses_lon_lat.get(
+                                restaurant_with_item.address
+                            )['lon'],
+                            addresses_lon_lat.get(
+                                restaurant_with_item.address
+                            )['lat'],
                         )
                         order_coordinates = (
                             addresses_lon_lat.get(order.address)['lon'],

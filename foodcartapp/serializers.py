@@ -27,14 +27,12 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        order_items_payload = validated_data.pop('products')
+        order_items_validated_data = validated_data.pop('products')
         order = Order.objects.create(**validated_data)
-        for payload_item in order_items_payload:
-            product = Product.objects.get(name=payload_item['product'])
-            OrderItem.objects.create(
-                order=order,
-                product=payload_item['product'],
-                quantity=payload_item['quantity'],
-                price=product.price,
-            )
+        order_items = []
+        for item_payload in order_items_validated_data:
+            item_payload['order'] = order
+            item_payload['price'] = Product.objects.get(name=item_payload['product']).price
+            order_items.append(OrderItem(**item_payload))
+        OrderItem.objects.bulk_create(order_items)
         return order

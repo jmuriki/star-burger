@@ -37,10 +37,11 @@
         <td>{{order.comment}}</td>
         <td>
           <details open>
-            <summary>{{order.restaurants_text}}</summary>
-              {% if order.executing_restaurant %}
+            {% if order.executing_restaurant %}
+              <summary>Готовится в ресторане:</summary>
                 <p>{{ order.executing_restaurant }}</p>
-              {% else %}
+            {% else %}
+              <summary>Может быть приготовлен ресторанами:</summary>
                 {% for restaurant in order.capable_restaurants %}
                   {% for name, distance in restaurant.items %}
                     <p>{{name}}
@@ -52,7 +53,7 @@
                     </p>
                   {% endfor %}
                 {% endfor %}
-              {% endif %}
+            {% endif %}
           </details>
         </td>
         <td>

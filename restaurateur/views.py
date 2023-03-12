@@ -95,15 +95,9 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    orders = Order.objects.exclude(status='CLIENT').order_by('status')\
+    orders = Order.objects.actual_status()\
         .prefetch_related('executing_restaurant')\
         .with_prices().with_capable_restaurants()
-    for order in orders:
-        if not order.executing_restaurant:
-            order.restaurants_text = 'Может быть приготовлен ресторанами:'
-        else:
-            order.restaurants_text = 'Готовится в ресторане:'
-
     return render(request, template_name='order_items.html', context={
         'orders': orders,
     })

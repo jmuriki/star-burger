@@ -35,7 +35,7 @@ cd star-burger
 ```sh
 python --version
 ```
-**Важно!** Версия Python должна быть не ниже 3.6.
+**Важно!** Версия Python должна быть не ниже 3.6. Рекомендую остановиться на версии 3.8.
 
 Возможно, вместо команды `python` здесь и в остальных инструкциях этого README придётся использовать `python3`. Зависит это от операционной системы и от того, установлен ли у вас Python старой второй версии. 
 
@@ -54,10 +54,13 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-Определите переменные окружения `SECRET_KEY` и `YANDEX_API_KEY`. Создать файл `.env` в каталоге `star_burger/` и положите туда такой код:
+Определите переменные окружения `SECRET_KEY`, `YANDEX_API_KEY`, `ROLLBAR_ACCESS_TOKEN` и `ENVIRONMENT`. Создать файл `.env` в каталоге `star_burger/` и положите туда такой код:
 ```sh
 SECRET_KEY=django-insecure-0if40nf4nf93n4
 YANDEX_API_KEY=поместите_API_ключ_разработчика_Yandex
+ROLLBAR_ACCESS_TOKEN=поместите_access_token_Rollbar
+ENVIRONMENT=укажите_"development"_для_dev-версии,_"production"_прописан_по-умолчанию
+
 ```
 Получить API ключ можно в [кабинете разработчика](https://developer.tech.yandex.ru/):
 
@@ -68,6 +71,8 @@ YANDEX_API_KEY=поместите_API_ключ_разработчика_Yandex
 - Буду отображать данные на карте. По шагам урока вам предстоит это сделать
 
 Создайте файл базы данных SQLite и отмигрируйте её следующей командой:
+
+Для получения access token Rollbar достаточно зарегистрироваться, создать новый проект и в SDK выбрать Django.
 
 ```sh
 python manage.py migrate

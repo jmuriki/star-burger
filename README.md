@@ -53,10 +53,12 @@ python -m venv venv
 ```sh
 pip install -r requirements.txt
 ```
+Установите PostgreSQL (по необходимости) и создайте новую БД. Используйте переменную окружения `DB_URL` для передачи параметров БД. Формат переменной: `postgres://USER:PASSWORD@HOST:PORT/NAME`. Заменять следует только uppercase параметры. Разделители `:` и `@` указывать не нужно в том случае, если прилежащие параметры пусты, но следует всегда указывать все `/`.
 
-Определите переменные окружения `SECRET_KEY`, `YANDEX_API_KEY`, `ROLLBAR_ACCESS_TOKEN` и `ENVIRONMENT`. Создать файл `.env` в каталоге `star_burger/` и положите туда такой код:
+Определите переменные окружения `SECRET_KEY`, `DB_URL`, `YANDEX_API_KEY`, `ROLLBAR_ACCESS_TOKEN` и `ENVIRONMENT`. Создать файл `.env` в каталоге `star_burger/` и положите туда такой код:
 ```sh
 SECRET_KEY=django-insecure-0if40nf4nf93n4
+DB_URL=поместите_URL_c_параметрами_настройки_базы_данных
 YANDEX_API_KEY=поместите_API_ключ_разработчика_Yandex
 ROLLBAR_ACCESS_TOKEN=поместите_access_token_Rollbar
 ENVIRONMENT=укажите_"development"_для_dev-версии,_"production"_прописан_по-умолчанию

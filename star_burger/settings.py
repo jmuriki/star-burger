@@ -15,6 +15,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 SECRET_KEY = env('SECRET_KEY')
 YANDEX_API_KEY = env('YANDEX_API_KEY')
 DEBUG = env.bool('DEBUG', False)
+ROLLBAR_ACCESS_TOKEN = env('ROLLBAR_ACCESS_TOKEN', False)
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', ['127.0.0.1', 'localhost'])
 
@@ -46,12 +47,13 @@ MIDDLEWARE = [
     'rollbar.contrib.django.middleware.RollbarNotifierMiddlewareExcluding404',
 ]
 
-ROLLBAR = {
-    'access_token': env('ROLLBAR_ACCESS_TOKEN'),
-    'environment': env('ENVIRONMENT', 'production'),
-    'code_version': '1.0',
-    'root': BASE_DIR,
-}
+if ROLLBAR_ACCESS_TOKEN:
+    ROLLBAR = {
+        'access_token': ROLLBAR_ACCESS_TOKEN,
+        'environment': env('ENVIRONMENT', 'production'),
+        'code_version': '1.0',
+        'root': BASE_DIR,
+    }
 
 ROOT_URLCONF = 'star_burger.urls'
 

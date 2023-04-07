@@ -62,7 +62,7 @@ pip install -r requirements.txt
 DB_URL=поместите_URL_c_параметрами_настройки_базы_данных
 SECRET_KEY=django-insecure-0if40nf4nf93n4
 YANDEX_API_KEY=поместите_API_ключ_разработчика_Yandex
-ROLLBAR_ACCESS_TOKEN=поместите_access_token_Rollbar
+ROLLBAR_ACCESS_TOKEN=поместите_access_token_Rollbar,_если_захотите_подключить_мониторинг_исключений
 ENVIRONMENT=укажите_"development"_для_dev-версии,_"production"_прописан_по-умолчанию
 ```
 Получить API ключ YANDEX можно в [кабинете разработчика](https://developer.tech.yandex.ru/):
@@ -163,7 +163,7 @@ Parcel будет следить за файлами в каталоге `bundle
 - `DEBUG` — поставьте `False` или удалите переменную.
 - `SECRET_KEY` — секретный ключ проекта. Он отвечает за шифрование на сайте. Например, им зашифрованы все пароли на вашем сайте.
 - `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts).
-- `ROLLBAR_ACCESS_TOKEN` - укажите access token Rollbar.
+- `ROLLBAR_ACCESS_TOKEN` - укажите access token Rollbar, если захотите подключить мониторинг исключений. 
 
 ## Как быстро обновить код на сервере
 

@@ -29,9 +29,6 @@ systemctl restart star-burger_node.service
 systemctl restart star-burger_gunicorn.service
 systemctl reload nginx.service
 
-# Сообщение об успешном завершении деплоя
-echo "Деплой успешно завершен!"
-
 # Загрузка переменных окружения из файла .env
 if [[ -f .env ]]; then
     source .env
@@ -56,5 +53,5 @@ curl -X POST https://api.rollbar.com/api/1/deploy/ \
            "status": "succeeded"
          }'
 
-
-echo "Rollbar уведомлён о деплое."
+# Сообщение об успешном завершении деплоя
+echo "Деплой успешно завершен!"

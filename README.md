@@ -23,7 +23,7 @@
 
 Скачайте код:
 ```sh
-git clone https://github.com/devmanorg/star-burger.git
+git clone https://github.com/jmuriki/star-burger.git
 ```
 
 Перейдите в каталог проекта:
@@ -57,13 +57,14 @@ pip install -r requirements.txt
 ```
 Установите PostgreSQL (по необходимости) и создайте новую БД. Используйте переменную окружения `DB_URL` для передачи параметров БД. Формат переменной: `postgres://USER:PASSWORD@HOST:PORT/NAME`. Заменять следует только uppercase параметры. Разделители `:` и `@` указывать не нужно в том случае, если предшествующие параметры пусты, но следует всегда указывать все `/`.
 
-Определите переменные окружения `SECRET_KEY`, `YANDEX_API_KEY`, `ROLLBAR_ACCESS_TOKEN` и `ENVIRONMENT`. Создайте файл `.env` в каталоге `star_burger/` и положите туда такой код:
+Определите переменные окружения `SECRET_KEY`, `YANDEX_API_KEY`. `ROLLBAR_ACCESS_TOKEN` и `ENVIRONMENT` - опционально. Создайте файл `.env` в каталоге `star_burger/` и положите туда такой код:
 ```sh
-DB_URL=поместите_URL_c_параметрами_настройки_базы_данных
 SECRET_KEY=django-insecure-0if40nf4nf93n4
 YANDEX_API_KEY=поместите_API_ключ_разработчика_Yandex
+
+DB_URL=поместите_URL_c_параметрами_настройки_базы_данных_если_используете_PostgreSQL
 ROLLBAR_ACCESS_TOKEN=поместите_access_token_Rollbar,_если_захотите_подключить_мониторинг_исключений
-ENVIRONMENT=укажите_"development"_для_dev-версии,_"production"_прописан_по-умолчанию
+ENVIRONMENT=если_используете_Rollbar,_укажите_"development"_для_dev-версии,_"production"_прописан_по-умолчанию
 ```
 Получить API ключ YANDEX можно в [кабинете разработчика](https://developer.tech.yandex.ru/):
 
@@ -151,30 +152,33 @@ Parcel будет следить за файлами в каталоге `bundle
 
 ## Как запустить prod-версию сайта
 
-Собрать фронтенд:
-
-```sh
-./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
-```
-
 Настроить бэкенд: создать файл `.env` в каталоге `star_burger/` со следующими настройками:
 
 - `DB_URL` - подставьте значения параметров по форме: `postgres://USER:PASSWORD@HOST:PORT/NAME`.
 - `DEBUG` — поставьте `False` или удалите переменную.
 - `SECRET_KEY` — секретный ключ проекта. Он отвечает за шифрование на сайте. Например, им зашифрованы все пароли на вашем сайте.
 - `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts).
-- `ROLLBAR_ACCESS_TOKEN` - укажите access token Rollbar, если захотите подключить мониторинг исключений. 
+- `ROLLBAR_ACCESS_TOKEN` - укажите access token Rollbar, если захотите подключить мониторинг исключений.
+
+Чтобы собрать фронтенд, используйте bash-скрипт `deploy_star-burger.sh`, который можно найти в корне проекта:
+
+```sh
+./deploy_star-burger.sh
+```
 
 ## Как быстро обновить код на сервере
 
-Вам потребуется bash-скрипт `deploy_star-burger.sh`, который можно найти в корне проекта.
-```
+Вам потребуется всё тот же bash-скрипт `deploy_star-burger.sh`:
+
+```sh
 ./deploy_star-burger.sh
 ```
+
 Bash-скрипт на сервере сделает следующее:
 
 - Обновит код репозитория
 - Установит библиотеки для Python и Node.js
+- Пересоберёт фронтенд
 - Пересоберёт статику Django
 - Накатит миграции
 - Перезапустит сервисы Systemd

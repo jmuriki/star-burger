@@ -15,6 +15,9 @@ pip install -r requirements.txt
 # Установка библиотек для Node.js
 npm ci --dev
 
+# Пересборка фронтенда
+./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
+
 # Пересборка статики Django
 python manage.py collectstatic --noinput
 
@@ -55,4 +58,3 @@ curl -X POST https://api.rollbar.com/api/1/deploy/ \
 
 
 echo "Rollbar уведомлён о деплое."
-

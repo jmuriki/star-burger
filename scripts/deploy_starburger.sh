@@ -6,6 +6,9 @@ cd /opt/star-burger/
 # Обновление кода репозитория
 git pull
 
+# Выбор ветки
+git checkout star-burger_Docker_lesson2
+
 # Активация виртуального окружения
 source /opt/star-burger/venv/bin/activate
 

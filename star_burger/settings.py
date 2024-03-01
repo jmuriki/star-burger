@@ -3,6 +3,7 @@ import os
 import dj_database_url
 
 from environs import Env
+from django.core.management.utils import get_random_secret_key
 
 
 env = Env()
@@ -12,8 +13,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 
-SECRET_KEY = env('SECRET_KEY')
-YANDEX_API_KEY = env('YANDEX_API_KEY')
+SECRET_KEY = env.str('SECRET_KEY', default=get_random_secret_key())
+YANDEX_API_KEY = env.str('YANDEX_API_KEY', default=None)
 DEBUG = env.bool('DEBUG', False)
 ROLLBAR_ACCESS_TOKEN = env('ROLLBAR_ACCESS_TOKEN', False)
 
@@ -29,7 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'debug_toolbar',
-    "phonenumber_field",
+    'phonenumber_field',
     'rest_framework',
     'locations',
 ]
@@ -76,7 +77,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, "templates"),
+            os.path.join(BASE_DIR, 'templates'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -92,7 +93,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'star_burger.wsgi.application'
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = env.str('MEDIA_ROOT', default=os.path.join(BASE_DIR, 'media'))
 MEDIA_URL = '/media/'
 
 DATABASES = {
@@ -137,6 +138,11 @@ INTERNAL_IPS = [
 
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "assets"),
-    os.path.join(BASE_DIR, "bundles"),
+    os.path.join(BASE_DIR, '../var/www/static/'),
+    os.path.join(BASE_DIR, 'assets/'),
+    os.path.join(BASE_DIR, 'bundles/'),
 ]
+
+for folder in STATICFILES_DIRS:
+    if not os.path.exists(folder):
+        STATICFILES_DIRS.remove(folder)

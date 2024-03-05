@@ -1,0 +1,15 @@
+FROM python:3.8
+WORKDIR /star-burger/
+RUN mkdir -p /var/www/static/
+RUN mkdir -p /var/www/media/
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY manage.py .
+COPY foodcartapp/ ./foodcartapp
+COPY locations/ ./locations
+COPY restaurateur/ ./restaurateur
+COPY star_burger/ ./star_burger
+COPY templates/ ./templates
+COPY assets/ ./assets
+COPY scripts/ ./scripts
+CMD ["sh", "-c", "if [ \"$COMMAND\" = \"collectstatic\" ]; then ./scripts/collectstatic.sh; elif [ \"$COMMAND\" = \"runserver\" ]; then ./scripts/runserver.sh; elif [ \"$COMMAND\" = \"gunicorn\" ]; then ./scripts/gunicorn.sh; else echo 'Invalid command'; fi"]

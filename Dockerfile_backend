@@ -12,4 +12,5 @@ COPY star_burger/ ./star_burger
 COPY templates/ ./templates
 COPY assets/ ./assets
 COPY scripts/ ./scripts
-CMD ["sh", "-c", "if [ \"$COMMAND\" = \"collectstatic\" ]; then ./scripts/collectstatic.sh; elif [ \"$COMMAND\" = \"runserver\" ]; then ./scripts/runserver.sh; elif [ \"$COMMAND\" = \"gunicorn\" ]; then ./scripts/gunicorn.sh; else echo 'Invalid command'; fi"]
+RUN python manage.py collectstatic --noinput
+CMD ["sh", "-c", "if [ \"$COMMAND\" = \"runserver\" ]; then ./scripts/runserver.sh; elif [ \"$COMMAND\" = \"gunicorn\" ]; then ./scripts/gunicorn.sh; else echo 'Invalid command'; fi"]

@@ -1,0 +1,41 @@
+version: "3"
+services:
+
+  frontend:
+
+    # Сборка образа на месте
+    # build:
+    #   dockerfile: Dockerfile_frontend
+
+    # Использование локального образа
+    # image: star-burger_frontend
+
+    # Использование удалённого образа
+    image: jmuriki/star-burger_frontend
+
+    volumes:
+      - ./staticfiles:/var/www/frontend
+
+  backend:
+
+    # Сборка образа на месте
+    # build:
+    #   dockerfile: Dockerfile_backend
+
+    # Использование локального образа
+    # image: star-burger_backend
+
+    # Использование удалённого образа
+    image: jmuriki/star-burger_backend
+
+    volumes:
+      - ./staticfiles:/var/www/static
+      - ./media:/var/www/media
+    ports:
+      - "10101:8000"
+    environment:
+      - COMMAND=runserver
+    env_file:
+      - .env
+    depends_on:
+      - frontend

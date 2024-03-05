@@ -13,4 +13,4 @@ COPY templates/ ./templates
 COPY assets/ ./assets
 COPY scripts/ ./scripts
 RUN python manage.py collectstatic --noinput
-CMD ["sh", "-c", "if [ \"$COMMAND\" = \"runserver\" ]; then ./scripts/runserver.sh; elif [ \"$COMMAND\" = \"gunicorn\" ]; then ./scripts/gunicorn.sh; else echo 'Invalid command'; fi"]
+CMD ["sh", "-c", "./scripts/start.sh \"$COMMAND\""]

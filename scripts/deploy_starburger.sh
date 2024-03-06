@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -e
 
 cd /opt/star-burger/
@@ -7,7 +8,7 @@ cd /opt/star-burger/
 git pull
 
 # Выбор ветки
-git checkout star-burger_Docker_lesson2
+git checkout Docker_lesson2
 
 # Активация виртуального окружения
 source /opt/star-burger/venv/bin/activate
@@ -41,7 +42,7 @@ fi
 access_token=$ROLLBAR_ACCESS_TOKEN
 
 # Получение хэша последнего коммита
-commit_hash=$(git rev-parse HEAD)
+commit_hash=$(git rev-parse Docker_lesson2)
 
 # Отправка запроса на API Rollbar с информацией о деплое
 curl -X POST https://api.rollbar.com/api/1/deploy/ \

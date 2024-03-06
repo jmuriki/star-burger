@@ -12,5 +12,7 @@ COPY star_burger/ ./star_burger
 COPY templates/ ./templates
 COPY assets/ ./assets
 COPY scripts/ ./scripts
+ARG COMMIT_HASH
+LABEL last_commit_hash="$COMMIT_HASH"
 RUN python manage.py collectstatic --noinput
 CMD ["sh", "-c", "./scripts/start.sh \"$COMMAND\""]

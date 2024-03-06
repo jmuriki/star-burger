@@ -41,7 +41,7 @@ fi
 access_token=$ROLLBAR_ACCESS_TOKEN
 
 # Получение хэша последнего коммита
-commit_hash=$(git rev-parse HEAD)
+commit_hash=$(git rev-parse Django_lesson3)
 
 # Отправка запроса на API Rollbar с информацией о деплое
 curl -X POST https://api.rollbar.com/api/1/deploy/ \

@@ -2,7 +2,7 @@
 
 Это сайт сети ресторанов Star Burger. Здесь можно заказать превосходные бургеры с доставкой на дом.
 
-Ознакомиться с работой сайта можно [здесь](https://starburger.jmuriki.space) и [здесь](https://starburger.docker.jmuriki.space).
+Ознакомиться с работой сайта можно [здесь](https://starburger.jmuriki.ru) и [здесь](https://starburger.docker.jmuriki.ru).
 
 ![скриншот сайта](https://dvmn.org/filer/canonical/1594651635/686/)
 

@@ -40,5 +40,8 @@ curl -X POST https://api.rollbar.com/api/1/deploy/ \
            "status": "succeeded"
          }'
 
+# Удаление отработавших контейнеров
+# docker container prune -f
+
 # Сообщение об успешном завершении деплоя
 echo "Деплой успешно завершен!"

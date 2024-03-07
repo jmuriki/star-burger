@@ -40,8 +40,16 @@ curl -X POST https://api.rollbar.com/api/1/deploy/ \
            "status": "succeeded"
          }'
 
-# Удаление отработавших контейнеров
-# docker container prune -f
-
 # Сообщение об успешном завершении деплоя
 echo "Деплой успешно завершен!"
+
+# Удаление отработавшего контейнера
+IMAGE_NAME="jmuriki/star-burger_frontend"
+CONTAINER_IDS=$(docker container ls -aqf "ancestor=$IMAGE_NAME" --filter "status=exited")
+
+if [ -n "$CONTAINER_IDS" ]; then
+    docker container rm $CONTAINER_IDS
+    echo "Неработающие контейнеры на основе образа $IMAGE_NAME удалены."
+else
+    echo "Неработающих контейнеров на основе образа $IMAGE_NAME не найдено."
+fi

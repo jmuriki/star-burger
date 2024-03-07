@@ -2,35 +2,18 @@
 
 set -e
 
-cd /opt/star-burger/
+cd /opt/star-burger_docker/
 
-# Обновление кода репозитория
-git pull
+# Остановка текущего стэка
+docker compose -f docker-compose_gunicorn.yaml down
 
-# Выбор ветки
-git checkout Docker_lesson2
+# Cкачивание свежих образов из .yaml файлов
+docker compose -f docker-compose_gunicorn.yaml pull
 
-# Активация виртуального окружения
-source /opt/star-burger/venv/bin/activate
+# Запуск стэка с prod-версией:
+docker compose -f docker-compose_gunicorn.yaml up -d
 
-# Установка библиотек для Python
-pip install -r requirements.txt
-
-# Установка библиотек для Node.js
-npm ci --dev
-
-# Пересборка фронтенда
-./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
-
-# Пересборка статики Django
-python manage.py collectstatic --noinput
-
-# Накат миграций
-python manage.py migrate --noinput
-
-# Перезапуск сервисов Systemd
-systemctl restart star-burger_node.service
-systemctl restart star-burger_gunicorn.service
+# Перезапуск nginx
 systemctl reload nginx.service
 
 # Загрузка переменных окружения из файла .env
@@ -42,7 +25,7 @@ fi
 access_token=$ROLLBAR_ACCESS_TOKEN
 
 # Получение хэша последнего коммита
-commit_hash=$(git rev-parse Docker_lesson2)
+commit_hash=$(docker inspect --format='{{index .Config.Labels "last_commit_hash"}}' jmuriki/star-burger_backend)
 
 # Отправка запроса на API Rollbar с информацией о деплое
 curl -X POST https://api.rollbar.com/api/1/deploy/ \
@@ -56,6 +39,9 @@ curl -X POST https://api.rollbar.com/api/1/deploy/ \
            "comment": "Комментарий",
            "status": "succeeded"
          }'
+
+# Удаление отработавших контейнеров
+# docker container prune -f
 
 # Сообщение об успешном завершении деплоя
 echo "Деплой успешно завершен!"

@@ -25,12 +25,12 @@
 
 Скачайте код:
 ```sh
-git clone https://github.com/jmuriki/star-burger.git
+git clone https://github.com/jmuriki/star-burger.git star-burger_docker
 ```
 
 Перейдите в каталог проекта и переключитесь на ветку `Docker_lesson2`:
 ```sh
-cd star-burger
+cd star-burger_docker
 git checkout Docker_lesson2
 ```
 
@@ -115,7 +115,7 @@ npm --version
 Перейдите в каталог проекта и установите пакеты Node.js:
 
 ```sh
-cd star-burger
+cd star-burger_docker
 npm ci --dev
 ```
 
@@ -308,7 +308,7 @@ After=docker.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/opt/***_docker/
+WorkingDirectory=/opt/star-burger_docker/
 ExecStart=/usr/libexec/docker/cli-plugins/docker-compose up -d
 ExecStop=/usr/libexec/docker/cli-plugins/docker-compose down
 
@@ -417,7 +417,7 @@ DB_URL=postgres://USER:PASSWORD@HOST:PORT/NAME
 Должен быть установлен `docker`.
 Находясь в корневой директории проекта и убедившись, что в ней содержится наполненный файл `.env` (инструкции по заполнению находятся выше), введите команду:
 ```sh
-./scripts/deploy_starburger_docker-compose.sh
+./scripts/deploy_star-burger_docker-compose.sh
 ```
 Данный скрипт скачает необходимые образы и запустит контейнеры. Для полноценной работы в prod-режиме останется настроить и запустить/перезапустить `nginx` и `systemd` (инструкции по их заполнению находятся выше).
 

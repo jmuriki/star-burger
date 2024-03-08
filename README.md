@@ -241,18 +241,18 @@ docker run --restart always -d --env-file .env -v ./staticfiles:/var/www/static 
 Скачайте свежие образы, если выберете вариант по умочанию.
 При первом использовании можете пропустить этот шаг и сразу перейти к команде `docker compose up` - она автоматически скачает свежие образы.
 ```sh
-docker compose pull -f docker-compose_runserver.yaml
-docker compose pull -f docker-compose_gunicorn.yaml
+docker compose -f docker-compose_runserver.yaml pull
+docker compose -f docker-compose_gunicorn.yaml pull
 ```
 
 dev-версия:
 ```sh
-docker compose up -d -f docker-compose_runserver.yaml
+docker compose -f docker-compose_runserver.yaml up -d
 ```
 
 prod-версия:
 ```sh
-docker compose up -d -f docker-compose_gunicorn.yaml
+docker compose -f docker-compose_gunicorn.yaml up -d
 ```
 
 
@@ -272,10 +272,10 @@ vim starburger.docker.***.ru
 server {
     server_name starburger.docker.***.ru;
     location /media/ {
-        alias /opt/star-burger/media/;
+        alias /opt/star-burger_docker/media/;
     }
     location /static/ {
-        alias  /opt/star-burger/staticfiles/;
+        alias  /opt/star-burger_docker/staticfiles/;
     }
     location / {
       include '/etc/nginx/proxy_params';
@@ -309,8 +309,8 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/star-burger_docker/
-ExecStart=/usr/libexec/docker/cli-plugins/docker-compose up -d
-ExecStop=/usr/libexec/docker/cli-plugins/docker-compose down
+ExecStart=/usr/libexec/docker/cli-plugins/docker-compose -f docker-compose_gunicorn.yaml up -d
+ExecStop=/usr/libexec/docker/cli-plugins/docker-compose -f docker-compose_gunicorn.yaml down
 
 [Install]
 WantedBy=multi-user.target

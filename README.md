@@ -15,7 +15,15 @@
 
 Третий интерфейс — это админка. Преимущественно им пользуются программисты при разработке сайта. Также сюда заходит менеджер, чтобы обновить меню ресторанов Star Burger.
 
-В самом конце этого файла можно найти раздел, посвящённый деплою с помощью `docker` и специального скрипта.
+
+Далее будет описано, как настроить и запустить сайт тремя способами:
+
+- без использования `Docker`
+- с помощью `Docker` и/или `Docker-compose`
+- с помощью деплойного скрипта `Docker-compose`
+
+Некоторые инструкции из первой части пригодятся при выборе любого из вариантов деплоя. В конце файла есть разделы, посвящённые настройке `systemd`, `nginx` и `PostgreSQL`.
+
 
 ## Как запустить dev-версию сайта
 
@@ -60,17 +68,19 @@ pip install -r requirements.txt
 ```
 Установите PostgreSQL (по необходимости) и создайте новую БД. Используйте переменную окружения `DB_URL` для передачи параметров БД. Формат переменной: `postgres://USER:PASSWORD@HOST:PORT/NAME`. Заменять следует только uppercase параметры. Разделители `:` и `@` указывать не нужно в том случае, если предшествующие параметры пусты, но следует всегда указывать все `/`.
 
-Определите переменные окружения `SECRET_KEY`, `YANDEX_API_KEY`. `ROLLBAR_ACCESS_TOKEN` и `ENVIRONMENT` - опционально. Создайте файл `.env` в каталоге `star_burger/` и положите туда такой код:
+Определите переменные окружения `SECRET_KEY`, `YANDEX_API_KEY`.
+`ROLLBAR_ACCESS_TOKEN` и `ENVIRONMENT` - опционально.
+Создайте файл `.env` в корневом каталоге и положите туда такой код:
 ```sh
 SECRET_KEY=django-insecure-0if40nf4nf93n4
-YANDEX_API_KEY=поместите_API_ключ_разработчика_Yandex
+YANDEX_API_KEY=API_ключ_разработчика_Yandex
 
-DB_URL=поместите_URL_c_параметрами_настройки_базы_данных_если_используете_PostgreSQL
-ROLLBAR_ACCESS_TOKEN=поместите_access_token_Rollbar,_если_захотите_подключить_мониторинг_исключений
-ENVIRONMENT=если_используете_Rollbar,_укажите_"development"_для_dev-версии,_"production"_прописан_по-умолчанию
+DB_URL=URL_c_параметрами_настройки_БД_PostgreSQL
+ROLLBAR_ACCESS_TOKEN=access_token_Rollbar_для_мониторинга_исключений
+ENVIRONMENT=если_используете_Rollbar,_укажите_"development"_для_dev-версии
 ```
 Получить API ключ YANDEX можно в [кабинете разработчика](https://developer.tech.yandex.ru/):
-Самые важные ответы на вопросы:
+Самые важные ответы на вопросы при регистрации:
 - В открытом. Ваш код будет публично опубликован, это открытая система.
 - В бесплатном. Вы пишете код в образовательных целях.
 - Буду отображать данные на карте.
@@ -153,7 +163,13 @@ Parcel будет следить за файлами в каталоге `bundle
 
 ## Как запустить prod-версию сайта
 
-Настроить бэкенд: создать файл `.env` в каталоге `star_burger/` со следующими настройками:
+Потребуется настройка сервисов `systemd` для `gunicorn` и `node`.
+Потребуется настройка конфигурации `nginx`.
+Ближе к концу `README.md` будет раздел с инструкциями по настройке `systemd` и `gunicorn` на Ubuntu.
+
+### Настроить бэкенд
+
+Cоздать в корневом каталоге проекта файл `.env` со следующими настройками:
 
 - `DB_URL` - подставьте значения параметров по форме: `postgres://USER:PASSWORD@HOST:PORT/NAME`.
 - `DEBUG` — поставьте `False` или закомментируйте/удалите переменную.
@@ -161,7 +177,9 @@ Parcel будет следить за файлами в каталоге `bundle
 - `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts).
 - `ROLLBAR_ACCESS_TOKEN` - укажите access token Rollbar, если захотите подключить мониторинг исключений.
 
-Чтобы собрать фронтенд, используйте bash-скрипт `deploy_star-burger.sh`, который можно найти в папке `scripts` в корне проекта:
+### Cобрать фронтенд
+
+Используйте bash-скрипт `deploy_star-burger.sh`, который можно найти в папке `scripts` в корне проекта:
 
 ```sh
 ./scripts/deploy_star-burger.sh
@@ -190,7 +208,7 @@ Bash-скрипт на сервере сделает следующее:
 
 ## Как запустить сайт с помощью Docker
 
-Должен быть установлен `docker`.
+Должен быть установлен [Docker](https://docs.docker.com).
 Далее будут описаны этапы создания образов и запуска контейнеров, но для быстрого запуска можно сразу перейти к разделу Docker-compose.
 Все команды следует вводить, находясь в основной директории проекта.
 
@@ -255,16 +273,141 @@ prod-версия:
 docker compose -f docker-compose_gunicorn.yaml up -d
 ```
 
+При выборе варината `gunicorn` потребуется настройка конфигурации `nginx` (далее будет раздел с инструкцией для Ubuntu).
+
+
+## Деплойный скрипт Docker-compose
+
+Должен быть установлен [Docker](https://docs.docker.com).
+Находясь в корневой директории проекта и убедившись, что в ней содержится наполненный файл `.env` (инструкции по заполнению находятся выше), введите команду:
+```sh
+./scripts/deploy_star-burger_docker-compose.sh
+```
+Данный скрипт скачает необходимые образы и запустит контейнеры. Для полноценной работы в prod-режиме останется настроить и запустить/перезапустить `nginx` и `systemd`.
+
+Bash-скрипт на сервере сделает следующее:
+
+- Остановит работающий стэк (если он есть)
+- Обновит образы
+- Запустит стэк с обновлёнными образами
+- Перезапустит nginx
+- Сообщит об успешном завершении деплоя
+- Удалит отработавший контейнер
+- Упадёт в случае ошибки и дальше не пойдёт
+
+
+## systemd
+
+Создайте демона, если хотите, чтобы сервис автоматически поднимался в случае перезагрузки сервера (далее инструкция для Ubuntu):
+
+```sh
+cd /etc/systemd/system/
+```
+
+```sh
+vim star-burger_gunicorn.service
+```
+
+```
+[Unit]
+Description=gunicorn server for star-burger
+After=network.target
+Requires=postgresql.service
+
+[Service]
+WorkingDirectory=/opt/star-burger_docker/
+ExecStart=/opt/star-burger_docker/venv/bin/gunicorn -w 3 -b 127.0.0.1:8080 star_burger.wsgi:application
+Restart=always
+[Install]
+WantedBy=multi-user.target
+```
+
+```sh
+vim star-burger_node.service
+```
+
+```
+[Service]
+WorkingDirectory=/opt/star-burger_docker/
+ExecStart=/opt/star-burger_docker/node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
+Restart=always
+[Install]
+WantedBy=multi-user.target
+```
+
+```sh
+vim star-burger_docker-compose.service
+```
+
+```
+[Unit]
+Description=Docker Compose Application
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/star-burger_docker/
+ExecStart=/usr/libexec/docker/cli-plugins/docker-compose -f docker-compose_gunicorn.yaml up -d
+ExecStop=/usr/libexec/docker/cli-plugins/docker-compose -f docker-compose_gunicorn.yaml down
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Настройте запуск демонов при перезагрузке системы и активируйте их:
+
+```sh
+systemctl enable star-burger_gunicorn.service
+systemctl start star-burger_gunicorn.service
+systemctl enable star-burger_node.service
+systemctl start star-burger_node.service
+```
+
+```sh
+systemctl enable star-burger_docker-compose.service
+systemctl start star-burger_docker-compose.service
+```
+
 
 ## nginx
 
 Должен быть установлен `nginx`.
 
-При выборе варината `gunicorn` потребуется настройка конфигурации `nginx` (далее инструкция для Ubuntu).
+```sh
+cd /etc/nginx/sites-available/
+```
 
 Создать файл конфигурации:
 ```sh
-cd /etc/nginx/sites-available/
+vim starburger.***.ru
+```
+
+```
+server {
+    server_name starburger.jmuriki.ru;
+    location /media/ {
+        alias /opt/star-burger_docker/media/;
+    }
+    location /static/ {
+        alias  /opt/star-burger_docker/staticfiles/;
+    }
+    location / {
+      include '/etc/nginx/proxy_params';
+      proxy_pass http://127.0.0.1:8080/;
+    }
+}
+```
+
+Активировать конфигурацию:
+```
+ln -s /etc/nginx/sites-available/starburger.***.ru /etc/nginx/sites-enabled/
+```
+
+
+Создать файл конфигурации для docker версии:
+```sh
 vim starburger.docker.***.ru
 ```
 
@@ -287,39 +430,6 @@ server {
 Активировать конфигурацию:
 ```
 ln -s /etc/nginx/sites-available/starburger.docker.***.ru /etc/nginx/sites-enabled/
-```
-
-
-## systemd
-
-Создайте демона, если хотите, чтобы сайт автоматически поднимался в случае перезагрузки сервера (далее инструкция для Ubuntu):
-
-```sh
-cd /etc/systemd/system/
-vim star-burger_docker-compose.service
-```
-
-```
-[Unit]
-Description=Docker Compose Application
-Requires=docker.service
-After=docker.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-WorkingDirectory=/opt/star-burger_docker/
-ExecStart=/usr/libexec/docker/cli-plugins/docker-compose -f docker-compose_gunicorn.yaml up -d
-ExecStop=/usr/libexec/docker/cli-plugins/docker-compose -f docker-compose_gunicorn.yaml down
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Настройте запуск демона при перезагрузке системы и активируйте его:
-```sh
-systemctl enable star-burger_docker-compose.service
-systemctl start star-burger_docker-compose.service
 ```
 
 
@@ -412,26 +522,6 @@ DB_URL=postgres://USER:PASSWORD@HOST:PORT/NAME
 ```
 
 
-## Деплойный скрипт
-
-Должен быть установлен `docker`.
-Находясь в корневой директории проекта и убедившись, что в ней содержится наполненный файл `.env` (инструкции по заполнению находятся выше), введите команду:
-```sh
-./scripts/deploy_star-burger_docker-compose.sh
-```
-Данный скрипт скачает необходимые образы и запустит контейнеры. Для полноценной работы в prod-режиме останется настроить и запустить/перезапустить `nginx` и `systemd` (инструкции по их заполнению находятся выше).
-
-Bash-скрипт на сервере сделает следующее:
-
-- Остановит работающий стэк
-- Обновит образы
-- Запустит стэк с обновлёнными образами
-- Перезапустит nginx
-- Сообщит об успешном завершении деплоя
-- Удалит отработавший контейнер
-- Упадёт в случае ошибки и дальше не пойдёт
-
-
 ## Цели проекта
 
 Код написан в учебных целях — это урок в курсе по Python и веб-разработке на сайте [Devman](https://dvmn.org). За основу был взят код проекта [FoodCart](https://github.com/Saibharath79/FoodCart).
@@ -439,4 +529,4 @@ Bash-скрипт на сервере сделает следующее:
 Где используется репозиторий:
 
 - Второй и третий урок [учебного курса Django](https://dvmn.org/modules/django/)
-- Второй урок [учебного курса Docker](https://dvmn.org/modules/)
+- Второй урок [учебного курса Docker](https://dvmn.org/modules/docker-v2/)

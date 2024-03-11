@@ -31,6 +31,7 @@ services:
     volumes:
       - ./staticfiles:/var/www/static
       - ./media:/var/www/media
+      - .:/star-burger
     ports:
       - "10101:8000"
     environment:

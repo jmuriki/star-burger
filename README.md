@@ -238,15 +238,15 @@ docker run -v ./staticfiles:/var/www/frontend --rm jmuriki/star-burger_frontend
 
 Для запуска dev-версии на локальной машине:
 ```sh
-docker run -d --env-file .env -v ./staticfiles:/star-burger/bundles -v ./media:/var/www/media/ -p 10101:8000 -e COMMAND=runserver jmuriki/star-burger_backend
+docker run -d --env-file .env -v ./staticfiles:/var/www/static -v ./media:/var/www/media/ -v .:/star-burger/ -p 10101:8000 -e COMMAND=runserver jmuriki/star-burger_backend
 ```
-В предварительно созданную в контейнере директорию `bundles` будет вмонтирована локальная папка `staticfiles`, а затем запущен сервер Django.
+В предварительно созданную в контейнере директорию `/var/www/static` будет вмонтирована локальная папка `staticfiles` вместе со всеми содержащимися в ней файлами статики фронтенда, также будет вмонтирована папка `media` и корневая директория, а затем запущен сервер Django.
 
 Для запуска prod-версии на сервере с `nginx`:
 ```sh
 docker run --restart always -d --env-file .env -v ./staticfiles:/var/www/static -v ./media:/var/www/media/ -p 10101:8080 -e COMMAND=gunicorn jmuriki/star-burger_backend
 ```
-Будет произведено копирование собранных в образе файлов статики в предварительно созданную в контейнере директорию `static`, в которую будет вмонтирована локальная папка `staticfiles` вместе со всеми содержащимися в ней файлами статики фронтенда.
+Будет произведено копирование собранных в образе файлов статики в предварительно созданную в контейнере директорию `/var/www/static`, в которую будет вмонтирована локальная папка `staticfiles` вместе со всеми содержащимися в ней файлами статики фронтенда,а также будет вмонтирована папка `media`, а затем запущен сервер Gunicorn.
 
 Если захотите использовать определённый порт внутри контейнера, то его нужно будет поменять не только в команде, но и в скрипте `scripts/start.sh`, а затем пересобрать образ.
 

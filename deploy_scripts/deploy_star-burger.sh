@@ -8,19 +8,15 @@ cd /opt/star-burger_docker/
 git pull
 
 # Выбор ветки
-git checkout Docker_lesson2
+git checkout Docker_lesson2+
+
+cd backend
 
 # Активация виртуального окружения
-source /opt/star-burger_docker/venv/bin/activate
+source venv/bin/activate
 
 # Установка библиотек для Python
 pip install -r requirements.txt
-
-# Установка библиотек для Node.js
-npm ci --dev
-
-# Пересборка фронтенда
-./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
 
 # Пересборка статики Django
 python manage.py collectstatic --noinput
@@ -28,15 +24,23 @@ python manage.py collectstatic --noinput
 # Накат миграций
 python manage.py migrate --noinput
 
-# Перезапуск сервисов Systemd
-systemctl restart star-burger_node.service
-systemctl restart star-burger_gunicorn.service
-systemctl reload nginx.service
-
 # Загрузка переменных окружения из файла .env
 if [[ -f .env ]]; then
     source .env
 fi
+
+cd ../frontend
+
+# Установка библиотек для Node.js
+npm ci --dev
+
+# Пересборка фронтенда
+./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
+
+# Перезапуск сервисов Systemd
+systemctl restart star-burger_node.service
+systemctl restart star-burger_gunicorn.service
+systemctl reload nginx.service
 
 # Установка переменной с токеном доступа Rollbar
 access_token=$ROLLBAR_ACCESS_TOKEN

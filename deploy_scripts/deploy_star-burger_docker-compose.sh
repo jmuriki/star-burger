@@ -2,7 +2,7 @@
 
 set -e
 
-cd /opt/star-burger_docker/
+cd /opt/star-burger_docker/docker-compose/
 
 # Остановка текущего стэка
 docker compose -f docker-compose_gunicorn.yaml down
@@ -13,8 +13,21 @@ docker compose -f docker-compose_gunicorn.yaml pull
 # Запуск стэка с prod-версией:
 docker compose -f docker-compose_gunicorn.yaml up -d
 
+# Удаление отработавшего контейнера
+IMAGE_NAME="jmuriki/star-burger_frontend"
+CONTAINER_IDS=$(docker container ls -aqf "ancestor=$IMAGE_NAME" --filter "status=exited")
+
+if [ -n "$CONTAINER_IDS" ]; then
+    docker container rm $CONTAINER_IDS
+    echo "Неработающие контейнеры на основе образа $IMAGE_NAME удалены."
+else
+    echo "Неработающих контейнеров на основе образа $IMAGE_NAME не найдено."
+fi
+
 # Перезапуск nginx
 systemctl reload nginx.service
+
+cd ../backend
 
 # Загрузка переменных окружения из файла .env
 if [[ -f .env ]]; then
@@ -42,14 +55,3 @@ curl -X POST https://api.rollbar.com/api/1/deploy/ \
 
 # Сообщение об успешном завершении деплоя
 echo "Деплой успешно завершен!"
-
-# Удаление отработавшего контейнера
-IMAGE_NAME="jmuriki/star-burger_frontend"
-CONTAINER_IDS=$(docker container ls -aqf "ancestor=$IMAGE_NAME" --filter "status=exited")
-
-if [ -n "$CONTAINER_IDS" ]; then
-    docker container rm $CONTAINER_IDS
-    echo "Неработающие контейнеры на основе образа $IMAGE_NAME удалены."
-else
-    echo "Неработающих контейнеров на основе образа $IMAGE_NAME не найдено."
-fi

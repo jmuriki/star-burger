@@ -20,9 +20,9 @@
 
 - без использования `Docker`
 - с помощью `Docker` и/или `Docker-compose`
-- с помощью деплойного скрипта `Docker-compose`
+- с помощью деплойного скрипта и `Docker-compose`
 
-Некоторые инструкции из первой части пригодятся при выборе любого из вариантов деплоя. В конце файла есть разделы, посвящённые настройке `systemd`, `nginx` и `PostgreSQL`.
+Некоторые из инструкций, описанных в первой части, пригодятся при выборе любого из вариантов деплоя. В конце этого README есть разделы, посвящённые настройке `systemd`, `nginx` и `PostgreSQL`.
 
 
 ## Как запустить dev-версию сайта
@@ -36,10 +36,10 @@
 git clone https://github.com/jmuriki/star-burger.git star-burger_docker
 ```
 
-Перейдите в каталог проекта и переключитесь на ветку `Docker_lesson2`:
+Перейдите в корневой каталог проекта и переключитесь на ветку `Docker_lesson2+`:
 ```sh
 cd star-burger_docker
-git checkout Docker_lesson2
+git checkout Docker_lesson2+
 ```
 
 [Установите Python](https://www.python.org/), если этого ещё не сделали.
@@ -50,42 +50,57 @@ python --version
 ```
 **Важно!** Версия Python должна быть не ниже 3.6. Рекомендуется остановиться на версии 3.8.
 
-Возможно, вместо команды `python` здесь и в остальных инструкциях этого README придётся использовать `python3`. Зависит это от операционной системы и от того, установлен ли у вас Python старой (второй) версии. 
+Возможно, вместо команды `python` здесь и в остальных инструкциях README придётся использовать `python3`. Зависит это от операционной системы и от того, установлен ли у вас Python старой (второй) версии. 
 
-В каталоге проекта создайте виртуальное окружение:
+Перейдите в каталог `backend` в корне проекта и создайте виртуальное окружение:
 ```sh
 python -m venv venv
 ```
+
 Активируйте его. На разных операционных системах это делается разными командами:
 
 - Windows: `.\venv\Scripts\activate`
 - MacOS/Linux: `source venv/bin/activate`
 
-
 Установите зависимости в виртуальное окружение:
 ```sh
 pip install -r requirements.txt
 ```
-Установите PostgreSQL (по необходимости) и создайте новую БД. Используйте переменную окружения `DB_URL` для передачи параметров БД. Формат переменной: `postgres://USER:PASSWORD@HOST:PORT/NAME`. Заменять следует только uppercase параметры. Разделители `:` и `@` указывать не нужно в том случае, если предшествующие параметры пусты, но следует всегда указывать все `/`.
+
+Создайте файл `.env` в каталоге `backend`.
 
 Определите переменные окружения `SECRET_KEY`, `YANDEX_API_KEY`.
-`ROLLBAR_ACCESS_TOKEN` и `ENVIRONMENT` - опционально.
-Создайте файл `.env` в корневом каталоге и положите туда такой код:
-```sh
+```
 SECRET_KEY=django-insecure-0if40nf4nf93n4
 YANDEX_API_KEY=API_ключ_разработчика_Yandex
-
-DB_URL=URL_c_параметрами_настройки_БД_PostgreSQL
-ROLLBAR_ACCESS_TOKEN=access_token_Rollbar_для_мониторинга_исключений
-ENVIRONMENT=если_используете_Rollbar,_укажите_"development"_для_dev-версии
 ```
+
+SECRET_KEY — секретный ключ проекта. Он отвечает за шифрование на сайте. Например, им зашифрованы все пароли.
+
 Получить API ключ YANDEX можно в [кабинете разработчика](https://developer.tech.yandex.ru/):
 Самые важные ответы на вопросы при регистрации:
-- В открытом. Ваш код будет публично опубликован, это открытая система.
+- В открытом. Ваш код будет опубликован, это открытая система.
 - В бесплатном. Вы пишете код в образовательных целях.
 - Буду отображать данные на карте.
 
-Для получения access token Rollbar достаточно [зарегистрироваться](https://rollbar.com), создать новый проект и в SDK выбрать Django.
+Переменные, перечисленные далее, являются опциональными.
+```
+ALLOWED_HOSTS=127.0.0.1,localhost
+DEBUG=True_или_закомментируйте/удалите_переменную
+DB_URL=postgres://USER:PASSWORD@HOST:PORT/NAME
+ROLLBAR_ACCESS_TOKEN=access_token_Rollbar
+ENVIRONMENT=если_используете_Rollbar,_укажите_development_для_dev-версии
+MEDIA_ROOT=/var/www/media/
+```
+
+ALLOWED_HOSTS — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts)
+
+DB_URL - подставьте значения параметров по форме: `postgres://USER:PASSWORD@HOST:PORT/NAME`. В конце README есть более подробная инструкция.
+
+ROLLBAR_ACCESS_TOKEN - для мониторинга исключений укажите access token Rollbar. Для его получения достаточно [зарегистрироваться](https://rollbar.com), создать новый проект и в SDK выбрать Django.
+
+MEDIA_ROOT - укажите значение `/var/www/media/` при использовании Docker.
+
 
 Отмигрируйте файл базы данных следующей командой (если вы решили не использовать PostgreSQL, или не прописали `DB_URL` в переменных окружения, данная команда автоматически cоздаст и отмигрирует файл базы данных SQLite):
 
@@ -107,11 +122,13 @@ python manage.py runserver
 
 [Установите Node.js](https://nodejs.org/en/), если у вас его ещё нет.
 
-Проверьте, что Node.js и его пакетный менеджер корректно установлены. Если всё исправно, то терминал выведет их версии:
+Проверьте, что Node.js и его пакетный менеджер корректно установлены. Версия `nodejs` должна быть не младше `10.0` и не старше `16.16`. Лучше ставьте `14.21.3` или `16.16.0`, их тестировали. Версия `npm` не важна. Как обновить Node.js читайте в статье: [How to Update Node.js](https://phoenixnap.com/kb/update-node-js-version).
 
+Если всё исправно, то терминал выведет их версии:
 ```sh
 nodejs --version
 # v16.16.0
+
 # Если ошибка, попробуйте node:
 node --version
 # v16.16.0
@@ -120,12 +137,9 @@ npm --version
 # 8.11.0
 ```
 
-Версия `nodejs` должна быть не младше `10.0` и не старше `16.16`. Лучше ставьте `14.21.3` или `16.16.0`, их тестировали. Версия `npm` не важна. Как обновить Node.js читайте в статье: [How to Update Node.js](https://phoenixnap.com/kb/update-node-js-version).
-
-Перейдите в каталог проекта и установите пакеты Node.js:
+Перейдите в каталог `frontend` в корне проекта и установите пакеты Node.js:
 
 ```sh
-cd star-burger_docker
 npm ci --dev
 ```
 
@@ -163,30 +177,17 @@ Parcel будет следить за файлами в каталоге `bundle
 
 ## Как запустить prod-версию сайта
 
-Потребуется настройка сервисов `systemd` для `gunicorn` и `node`, а также настройка конфигурации `nginx`.
-Ближе к концу этого README будет раздел с инструкциями по их настройке на Ubuntu.
+Потребуется заполненный файл `.env` в каталоге `backend`, настройка сервисов `systemd` для `gunicorn` и `node`, а также настройка конфигурации `nginx`. Ближе к концу README будет раздел с инструкциями по их настройке на Ubuntu.
 
-### Настроить бэкенд
-
-Cоздать в корневом каталоге проекта файл `.env` со следующими настройками:
-
-- `DB_URL` - подставьте значения параметров по форме: `postgres://USER:PASSWORD@HOST:PORT/NAME`.
-- `DEBUG` — поставьте `False` или закомментируйте/удалите переменную.
-- `SECRET_KEY` — секретный ключ проекта. Он отвечает за шифрование на сайте. Например, им зашифрованы все пароли на вашем сайте.
-- `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/3.1/ref/settings/#allowed-hosts).
-- `ROLLBAR_ACCESS_TOKEN` - укажите access token Rollbar, если захотите подключить мониторинг исключений.
-
-### Cобрать фронтенд
-
-Используйте bash-скрипт `deploy_star-burger.sh`, который можно найти в папке `scripts` в корне проекта:
+Используйте bash-скрипт `deploy_star-burger.sh`, который можно найти в папке `deploy_scripts` в корне проекта:
 
 ```sh
-./scripts/deploy_star-burger.sh
+./deploy_star-burger.sh
 ```
 
 ## Как быстро обновить код на сервере
 
-Вам потребуется всё тот же bash-скрипт `deploy_star-burger.sh`:
+Вам потребуется всё тот же bash-скрипт `deploy_star-burger.sh`, который можно найти в папке `deploy_scripts` в корне проекта:
 
 ```sh
 ./deploy_star-burger.sh
@@ -209,54 +210,75 @@ Bash-скрипт на сервере сделает следующее:
 
 Должен быть установлен [Docker](https://docs.docker.com).
 Далее будут описаны этапы создания образов и запуска контейнеров, но для быстрого запуска можно сразу перейти к разделу Docker-compose.
-Все команды следует вводить, находясь в основной директории проекта.
 
+```sh
+cd star-burger_docker
+```
 
 ### Docker-image
 
+При сборке образов на сервере может понадобиться добавить в конец команды `--network=host`, чтобы Docker мог использовать сетевые настройки хоста, иначе процесс может прерваться до успешного окончания.
+
 ```sh
-docker build -f Dockerfile_frontend -t star-burger_frontend .
+cd frontend
+docker build -t star-burger_frontend . --network=host
 ```
 Будет произведена сборка образа фронтенда, в котором останутся только файлы статики.
 
 
 ```sh
-export COMMIT_HASH=$(git rev-parse Docker_lesson2)
-docker build --build-arg COMMIT_HASH=$COMMIT_HASH -f Dockerfile_backend -t star-burger_backend .
+cd backend
+export COMMIT_HASH=$(git rev-parse Docker_lesson2+)
+docker build --build-arg COMMIT_HASH=$COMMIT_HASH -t star-burger_backend . --network=host
 ```
 Будет произведён сбор файлов статики Django и создание образа бэкенда, который сможет запускаться в 2х различных режимах - `runserver` и `gunicorn`. Образ получит метку LABEL "last_commit_hash" со значением хэша последнего коммита в `git` ветке, чтобы затем передать этот хэш в `Rollbar` при запуске деплойного скрипта.
 
 
 ### Docker-container
 
+Перейдите в каталог `frontend` в корне проекта:
 ```sh
-docker run -v ./staticfiles:/var/www/frontend --rm jmuriki/star-burger_frontend
+cd frontend
 ```
-Будет произведено копирование собранных в образе файлов статики в предварительно созданную в контейнере директорию `frontend`, в которую будет вмонтирована локальная папка `staticfiles`, а в конце - удаление отработавшего контейнера.
 
-Далее, убедившись в том, что в основной директории содержится наполненный файл `.env` (инструкции по `.env` смотрите выше), введите команду, подставив вместо `10101:` желаемый номер порта.
+Следующей командой будет произведено копирование собранных в образе файлов статики в предварительно созданную в контейнере директорию `/var/www/frontend/`, в которую будет вмонтирован автоматически созданный том `star-burger_frontend`, а в конце - удаление отработавшего контейнера:
+```sh
+docker run -v star-burger_frontend:/var/www/frontend --rm jmuriki/star-burger_frontend
+```
+
+Далее, перейдите в каталог `backend` в корне проекта:
+```sh
+cd backend
+```
+
+Убедившись в том, что в директории содержится наполненный файл `.env` (инструкции по заполнению `.env` смотрите выше и в конце README), введите команду, подставив вместо `11111:` или `22222:` желаемый номер порта.
 
 Для запуска dev-версии на локальной машине:
 ```sh
-docker run -d --env-file .env -v ./staticfiles:/var/www/static -v ./media:/var/www/media/ -v .:/star-burger/ -p 10101:8000 -e COMMAND=runserver jmuriki/star-burger_backend
+docker run -d --env-file .env -v star-burger_frontend:/var/www/frontend -v ./media:/var/www/media -v .:/star-burger -p 11111:8000 -e COMMAND=runserver jmuriki/star-burger_backend
 ```
-В предварительно созданную в контейнере директорию `/var/www/static` будет вмонтирована локальная папка `staticfiles` вместе со всеми содержащимися в ней файлами статики фронтенда, также будет вмонтирована папка `media` и корневая директория, а затем запущен сервер Django.
+В предварительно созданную в контейнере директорию `/var/www/frontend/` будет вмонтирован том `star-burger_frontend` вместе со всеми содержащимися в нём файлами статики фронтенда, также будет вмонтирована папка `media` и директория `backend`, а затем запущен сервер Django.
 
 Для запуска prod-версии на сервере с `nginx`:
 ```sh
-docker run --restart always -d --env-file .env -v ./staticfiles:/var/www/static -v ./media:/var/www/media/ -p 10101:8080 -e COMMAND=gunicorn jmuriki/star-burger_backend
+docker run --restart always -d --env-file .env -v star-burger_frontend:/var/www/frontend -v ./staticfiles:/var/www/static -v ./media:/var/www/media -p 22222:8080 -e COMMAND=gunicorn jmuriki/star-burger_backend
 ```
-Будет произведено копирование собранных в образе файлов статики в предварительно созданную в контейнере директорию `/var/www/static`, в которую будет вмонтирована локальная папка `staticfiles` вместе со всеми содержащимися в ней файлами статики фронтенда,а также будет вмонтирована папка `media`, а затем запущен сервер Gunicorn.
+Будет вмонтирован том `star-burger_frontend` вместе со всеми содержащимися в нём файлами статики фронтенда, а также локальные папки `staticfiles` и `media`, затем будет произведено копирование всех файлов статики в предварительно созданную в контейнере директорию `/var/www/static/`, а затем запущен сервер Gunicorn.
 
-Если захотите использовать определённый порт внутри контейнера, то его нужно будет поменять не только в команде, но и в скрипте `scripts/start.sh`, а затем пересобрать образ.
+Если захотите использовать определённый порт внутри контейнера, то его нужно будет поменять не только в команде, но и в скрипте `start_server.sh`, а затем пересобрать образ.
 
 
 ### Docker-compose
 
-По умолчанию в `.yaml` файлах прописано использование образов из DockerHub `jmuriki`. В обоих `.yaml` файлах есть закомментированные варианты, позволяющие собрать образы на месте или использовать уже имеющиеся локальные образы.
+Перейдите в каталог `docker-compose` в корне проекта:
+```sh
+cd docker-compose
+```
+
+По умолчанию в `.yaml` файлах прописано использование образов из DockerHub `jmuriki`. В обоих `.yaml` файлах есть закомментированные варианты, позволяющие использовать локальные образы.
 
 Скачайте свежие образы, если выберете вариант по умочанию.
-При первом использовании можете пропустить этот шаг и сразу перейти к команде `docker compose up` - она автоматически скачает свежие образы.
+При первом использовании можете пропустить этот шаг и сразу перейти к команде `docker compose up` - она автоматически скачает свежие образы из DockerHub jmuriki.
 ```sh
 docker compose -f docker-compose_runserver.yaml pull
 docker compose -f docker-compose_gunicorn.yaml pull
@@ -278,9 +300,10 @@ docker compose -f docker-compose_gunicorn.yaml up -d
 ## Деплойный скрипт Docker-compose
 
 Должен быть установлен [Docker](https://docs.docker.com).
-Находясь в корневой директории проекта и убедившись, что в ней содержится наполненный файл `.env` (инструкции по заполнению находятся выше), введите команду:
+Убедитесь, что в директории `backend` содержится наполненный файл `.env` (инструкции по заполнению находятся выше).
+Находясь в директории `deploy_scripts` в корне проекта, введите команду:
 ```sh
-./scripts/deploy_star-burger_docker-compose.sh
+./deploy_star-burger_docker-compose.sh
 ```
 Данный скрипт скачает необходимые образы и запустит контейнеры. Для полноценной работы в prod-режиме останется настроить и запустить/перезапустить `nginx` и `systemd`.
 
@@ -314,8 +337,8 @@ After=network.target
 Requires=postgresql.service
 
 [Service]
-WorkingDirectory=/opt/star-burger_docker/
-ExecStart=/opt/star-burger_docker/venv/bin/gunicorn -w 3 -b 127.0.0.1:8080 star_burger.wsgi:application
+WorkingDirectory=/opt/star-burger_docker/backend/
+ExecStart=/opt/star-burger_docker/backend/venv/bin/gunicorn -w 3 -b 127.0.0.1:8080 star_burger.wsgi:application
 Restart=always
 [Install]
 WantedBy=multi-user.target
@@ -327,8 +350,8 @@ vim star-burger_node.service
 
 ```
 [Service]
-WorkingDirectory=/opt/star-burger_docker/
-ExecStart=/opt/star-burger_docker/node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
+WorkingDirectory=/opt/star-burger_docker/frontend/
+ExecStart=/opt/star-burger_docker/frontend/node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
 Restart=always
 [Install]
 WantedBy=multi-user.target
@@ -347,7 +370,7 @@ After=docker.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/opt/star-burger_docker/
+WorkingDirectory=/opt/star-burger_docker/docker-compose/
 ExecStart=/usr/libexec/docker/cli-plugins/docker-compose -f docker-compose_gunicorn.yaml up -d
 ExecStop=/usr/libexec/docker/cli-plugins/docker-compose -f docker-compose_gunicorn.yaml down
 
@@ -387,10 +410,10 @@ vim starburger.***.ru
 server {
     server_name starburger.jmuriki.ru;
     location /media/ {
-        alias /opt/star-burger_docker/media/;
+        alias /opt/star-burger_docker/backend/media/;
     }
     location /static/ {
-        alias  /opt/star-burger_docker/staticfiles/;
+        alias  /opt/star-burger_docker/backend/staticfiles/;
     }
     location / {
       include '/etc/nginx/proxy_params';
@@ -414,14 +437,14 @@ vim starburger.docker.***.ru
 server {
     server_name starburger.docker.***.ru;
     location /media/ {
-        alias /opt/star-burger_docker/media/;
+        alias /opt/star-burger_docker/backend/media/;
     }
     location /static/ {
-        alias  /opt/star-burger_docker/staticfiles/;
+        alias  /opt/star-burger_docker/backend/staticfiles/;
     }
     location / {
       include '/etc/nginx/proxy_params';
-      proxy_pass http://127.0.0.1:10101/;
+      proxy_pass http://127.0.0.1:22222/;
     }
 }
 ```
@@ -456,6 +479,8 @@ sudo service postgresql restart
 ```
 
 ### Настройки доступа к PostgreSQL
+
+Установите PostgreSQL (при необходимости) и создайте новую БД.
 
 Укажите адреса, которые PostgreSQL будет слушать (дополните команду в зависимости от установленной версии PostgreSQL):
 
@@ -520,10 +545,10 @@ ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}'
 PORT - порт PostgreSQL.
 
 Составьте переменную окружения с параметрами БД и добавьте её в `.env`:
-
 ```
 DB_URL=postgres://USER:PASSWORD@HOST:PORT/NAME
 ```
+Заменять следует только uppercase параметры. Разделители `:` и `@` указывать не нужно в том случае, если предшествующие параметры пусты, но следует всегда указывать все `/`.
 
 
 ## Цели проекта

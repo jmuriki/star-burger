@@ -6,6 +6,7 @@ COPY bundles-src ./bundles-src
 RUN ./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles
 
 FROM alpine:latest
+WORKDIR /star-burger/
+RUN mkdir -p /var/www/frontend/
 COPY --from=build-stage /star-burger/bundles/* /star-burger/bundles/
-RUN mkdir -p /var/www/frontend
 CMD ["cp", "-r", "/star-burger/bundles/.", "/var/www/frontend/"]

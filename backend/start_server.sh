@@ -6,6 +6,7 @@ if [ "$COMMAND" = "runserver" ]; then
 
 elif [ "$COMMAND" = "gunicorn" ]; then
     python manage.py migrate
+    cp -r /var/www/frontend/* /var/www/static/
     cp -r /star-burger/staticfiles/* /var/www/static/
 	gunicorn -w 3 -b 0.0.0.0:8080 star_burger.wsgi:application
 

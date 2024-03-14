@@ -138,9 +138,10 @@ INTERNAL_IPS = [
 
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, '../var/www/static/'),
     os.path.join(BASE_DIR, 'assets/'),
-    os.path.join(BASE_DIR, 'bundles/'),
+    os.path.join(BASE_DIR, '../var/www/static/'),
+    os.path.join(BASE_DIR, '../var/www/frontend/'),
+    os.path.join(BASE_DIR, '../frontend/bundles/'),
 ]
 
 for folder in STATICFILES_DIRS:

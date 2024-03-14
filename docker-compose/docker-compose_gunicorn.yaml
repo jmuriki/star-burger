@@ -5,7 +5,7 @@ services:
 
     # Сборка образа на месте
     # build:
-    #   dockerfile: Dockerfile_frontend
+    #   dockerfile: ../frontend/Dockerfile
 
     # Использование локального образа
     # image: star-burger_frontend
@@ -14,13 +14,13 @@ services:
     image: jmuriki/star-burger_frontend
 
     volumes:
-      - ./staticfiles:/var/www/frontend
+      - star-burger_frontend:/var/www/frontend
 
   backend:
 
     # Сборка образа на месте
     # build:
-    #   dockerfile: Dockerfile_backend
+    #   dockerfile: ../backend/Dockerfile
 
     # Использование локального образа
     # image: star-burger_backend
@@ -29,14 +29,17 @@ services:
     image: jmuriki/star-burger_backend
 
     volumes:
-      - ./staticfiles:/var/www/static
-      - ./media:/var/www/media
-      - .:/star-burger
+      - star-burger_frontend:/var/www/frontend
+      - ../backend/staticfiles:/var/www/static
+      - ../backend/media:/var/www/media
     ports:
-      - "10101:8000"
+      - "22222:8080"
     environment:
-      - COMMAND=runserver
+      - COMMAND=gunicorn
     env_file:
-      - .env
+      - ../backend/.env
     depends_on:
       - frontend
+
+volumes:
+  star-burger_frontend:
